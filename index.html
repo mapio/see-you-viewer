@@ -14,6 +14,7 @@
 		<script src="js/select2.min.js"></script>
 		<script src="js/mousetrap.min.js"></script>
 		<script src="js/highlight.min.js"></script>
+		<script src="results.js"></script>
 		<script>
 
 			var registered_uids = null, exercises = null, cases = null;
@@ -142,21 +143,23 @@
 					$sources.html( '<div class="alert alert-error">NOT FOUND</div>' );
 					$cases.html( '<div class="alert alert-error">NOT FOUND</div>' );
 				}
-				$.getJSON( '/'+ registered_uids[ uid ].uid + '/latest/TESTS.json', _ok ).fail( _err );
+				//$.getJSON( '/'+ registered_uids[ uid ].uid + '/latest/TESTS.json', _ok ).fail( _err );
+				_ok( results[ registered_uids[ uid ].uid ] );
 			}
 
 			function setup( data ) {
 
 				registered_uids = [];
-				$.each( data.split( '\n' ), function( idx, v ) {
-					if ( v ) {
-						var uid_info = v.split( '\t' );
-						registered_uids.push( { id: String( idx ), uid: uid_info[ 0 ], text: uid_info[ 1 ] } );
-					}
+				var n = 0;
+				$.each( results, function( uid, val ) {
+					registered_uids.push( {
+						id: String( n++ ),
+						text: val.signature[ 1 ],
+						'uid': val.signature[ 0 ]
+					});
 				});
 
 				$seluid.select2({ data: registered_uids, width: 'resolve' }).on( "change", update_uid );
-				$seluid.select2( "val", "0", true );
 
     			$selex.select2({
 					width: 'resolve',
@@ -178,6 +181,8 @@
     				}
     			}).on( "change", update_cn );
 
+    			$seluid.select2( "val", "0", true );
+
 			}
 
 			$(function() {
@@ -194,7 +199,8 @@
 				$ncases = $( "#sections_nav a[href='#cases']" );
 				$ntext = $( "#sections_nav a[href='#text']" );
 
-				$.get( '/registered_uids.tsv', setup );
+				//$.get( '/registered_uids.tsv', setup );
+				setup();
 
 			});
 
