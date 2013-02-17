@@ -31,6 +31,7 @@
 			Mousetrap.bind( 'i', function() { $nsources.tab( 'show' ); } );
 			Mousetrap.bind( 'o', function() { $ncases.tab( 'show' ); } );
 			Mousetrap.bind( 'p', function() { $ntext.tab( 'show' ); } );
+			Mousetrap.bind( 'esc', function() { $nsources.focus(); } );
 
 			function _uid( delta ) {
 				var uid = parseInt( $seluid.select2( "val" ) )
