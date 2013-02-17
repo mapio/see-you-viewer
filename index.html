@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<title>See You Viewer</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="css/bootstrap.min-16.css" rel="stylesheet" media="screen">
+		<link href="css/select2.css" rel="stylesheet"/>
+		<link href="css/highlight/solarized_light.css" rel="stylesheet"/>
+		<style>
+			body { padding: 1em;}
+		</style>
+		<script src="js/jquery.js"></script>
+		<script src="js/bootstrap.min.js"></script>
+		<script src="js/select2.min.js"></script>
+		<script src="js/mousetrap.min.js"></script>
+		<script src="js/highlight.min.js"></script>
+		<script>
+
+			var registered_uids = [
+				{ id: "0", text: "TRAVAINI STEFANO", uid: "709617" },
+				{ id: "1", text: "VILLA GOFFREDO", uid: "748237" },
+				{ id: "2", text: "LAGUARDIA FRANCESCO", uid: "755773" },
+				{ id: "3", text: "COLETTO STEFANO", uid: "755857" },
+				{ id: "4", text: "RINALDI LORENZO", uid: "760759" },
+				{ id: "5", text: "SCHIAVONI FEDERICO", uid: "773897" },
+				{ id: "6", text: "FESTA FABIO", uid: "773940" },
+				{ id: "7", text: "BERTIN EMILIO", uid: "775344" },
+				{ id: "8", text: "SCHIEDA JACOPO", uid: "777054" },
+				{ id: "9", text: "BRIVIO RAFFAELE", uid: "785271" }
+			];
+			var exercises = null, cases = null;
+			var $seluid, $selex, $selcase, $sources, $cases, $suid, $sinfo, $sip;
+
+			Mousetrap.bind( 'q', function() { _uid( -1 ); } );
+			Mousetrap.bind( 'w', function() { _uid( +1 ); } );
+			Mousetrap.bind( 'a', function() { _ex( -1 ); } );
+			Mousetrap.bind( 's', function() { _ex( +1 ); } );
+			Mousetrap.bind( 'z', function() { _cn( -1 ); } );
+			Mousetrap.bind( 'x', function() { _cn( +1 ); } );
+			Mousetrap.bind( 'i', function() { $( "#sections_nav a[href='#sources']" ).tab( 'show' ); } );
+			Mousetrap.bind( 'o', function() { $( "#sections_nav a[href='#cases']" ).tab( 'show' ); } );
+			Mousetrap.bind( 'p', function() { $( "#sections_nav a[href='#text']" ).tab( 'show' ); } );
+
+			function _uid( delta ) {
+				var uid = parseInt( $seluid.select2( "val" ) )
+				if ( typeof delta !== 'undefined' ) {
+					var new_uid = uid + delta;
+					if ( 0 <= new_uid && new_uid < registered_uids.length )
+						$seluid.select2( "val", new_uid );
+				} else return uid;
+			}
+
+			function _ex( delta ) {
+				var ex = parseInt( $selex.select2( "val" ) );
+				if ( typeof delta !== 'undefined' ) {
+					var new_ex = ex + delta;
+					if ( 0 <= new_ex && new_ex < exercises.length )
+						$selex.select2( "val", new_ex );
+				} else return ex;
+			}
+
+			function _cn( delta ) {
+				var cn = parseInt( $selcase.select2( "val" ) );
+				if ( typeof delta !== 'undefined' ) {
+					var new_cn = cn + delta;
+					if ( 0 <= new_cn && new_cn < cases.length )
+						$selcase.select2( "val", new_cn );
+				} else return cn;
+			}
+
+			function update_cn( e ) {
+				var cn = _cn();
+				var cc = cases[ cn ];
+				var res = [];
+				$.each( [ 'failure', 'error', 'stdout', 'stderr' ], function( i, e ) {
+					if ( cc[ e ] != null ) res.push(
+						$( '<div/>' ).html(
+							'<span class="label">' + e + '</span>'
+						).append(
+							cn > 0 ?
+								$( '<pre/>' ).html( hljs.highlight( 'diff', cc[ e ] ).value )
+							:
+								$( '<pre/>' ).text( cc[ e ] )
+						)
+					);
+				});
+				if ( res.length > 0 ) {
+					if ( cn > 0 )
+						$cases.html( '<div class="alert alert-error">problems found</div>' );
+					else
+						$cases.html( '<div class="alert alert-info">make output</div>' );
+					$.each( res, function( i, r ) { $cases.append( r ) } );
+				} else
+					$cases.html( '<div class="alert alert-success">no problems found</div>' );
+			}
+
+			function update_ex( e ) {
+				var ct = exercises[ _ex() ];
+				var res = [];
+				$.each( ct.sources, function( p ) {
+					res.push( $( '<div/>' ).append(
+						'<span class="label">' + p + '</span>'
+					).append(
+						$( '<pre/>' ).html( hljs.highlight( 'cpp', this ).value )
+					));
+				});
+				if ( res.length > 0 ) {
+					$sources.html( '' );
+					$.each( res, function( i, s ) { $sources.append( s ) } );
+				} else
+					$sources.html( '<div class="alert alert-error">no source file found</div>' );
+				cases = [];
+				$.each( ct.cases, function( idx ) {
+					this[ 'id' ] = String( idx );
+					this[ 'text' ] = this[ 'name' ];
+					cases.push( this );
+				});
+				$selcase.select2( "val", 0 );
+			}
+
+			function update_uid( e ) {
+				var uid = _uid();
+				function _ok( data ) {
+					var sig = data.signature;
+					$suid.html( sig[ 0 ] );
+					$sinfo.html( sig[ 1 ] );
+					$sip.html( sig[ 2 ] );
+					exercises = [];
+					$.each( data.exercises, function( name ) {
+						this[ 'text' ] = name;
+						exercises.push( this );
+					});
+					exercises.sort(
+						function( a, b ) { return a.text < b.text ? -1 : ( a.text > b.text ? 1 : 0 );
+					});
+					$.each( exercises, function( idx ) {
+						this[ 'id' ] = String( idx );
+					});
+					if ( isNaN( _ex() ) ) $selex.select2( "val", "0" );
+					update_ex();
+				}
+				function _err() {
+					exercises = [];
+					cases = [];
+					$suid.html( 'NOT FOUND' );
+					$sinfo.html( 'NOT FOUND' );
+					$sip.html( 'NOT FOUND' );
+					$sources.html( '<div class="alert alert-error">NOT FOUND</div>' );
+					$cases.html( '<div class="alert alert-error">NOT FOUND</div>' );
+				}
+				$.getJSON( '/'+ registered_uids[ uid ].uid + '/latest/TESTS.json', _ok ).fail( _err );
+			}
+
+			$(function() {
+
+				$seluid = $( "#seluid" );
+				$selex = $( "#selex" );
+				$selcase = $( "#selcase" );
+				$sources = $( '#sources' );
+				$cases = $( '#cases' );
+				$suid = $( '#suid' );
+				$sinfo = $( '#sinfo' );
+				$sip = $( '#sip' );
+
+				$seluid.select2({ data: registered_uids, width: 'resolve' }).on( "change", update_uid );
+				$seluid.select2( "val", "0", true );
+
+    			$selex.select2({
+					width: 'resolve',
+					initSelection: function( element, callback ) {
+						callback( exercises[ element.val() ] );
+					},
+					query: function( query ) {
+			        	query.callback( { results: exercises } );
+    				}
+    			}).on( "change", update_ex );
+
+    			$selcase.select2({
+					width: 'resolve',
+					initSelection: function( element, callback ) {
+						callback( cases[ element.val() ] );
+					},
+					query: function( query ) {
+			        	query.callback( { results: cases } );
+    				}
+    			}).on( "change", update_cn );
+
+			});
+
+		</script>
+	</head>
+	<body>
+	<div class="container-fluid"><div class="row-fluid">
+
+	<div class="span2">
+
+		<form><fieldset>
+		<legend>Chooser</legend>
+		<label>UID</label>
+		<input type="hidden" id="seluid"/>
+		<label>Exercise</label>
+		<input type="hidden" id="selex"/>
+		<label>Case</label>
+		<input type="hidden" id="selcase"/>
+		</fieldset></form>
+
+		<ul id="sections_nav" class="nav nav-pills nav-stacked">
+			<li class="active"><a href="#sources" data-toggle="tab">Sources</a></li>
+			<li><a href="#cases" data-toggle="tab">Cases</a></li>
+			<li><a href="#text" data-toggle="tab">Text</a></li>
+		</ul>
+
+		<form><fieldset>
+		<legend>Signature</legend>
+		<label>UID</label>
+		<span class="uneditable-input" id="suid"></span>
+		<label>Info</label>
+		<span class="uneditable-input" id="sinfo"></span>
+		<label>IP</label>
+		<span class="uneditable-input" id="sip"></span>
+		</fieldset></form>
+
+	</div><!-- sidebar -->
+
+	<div class="span10">
+
+
+		<div id="sections_content" class="tab-content">
+			<div class="tab-pane fade in active" id="sources"></div>
+			<div class="tab-pane fade" id="cases"></div>
+			<div class="tab-pane fade" id="text"></div>
+		</div>
+
+	</div><!-- body -->
+
+	</div><!-- row --></div><!-- container -->
+	</body>
+</html>
