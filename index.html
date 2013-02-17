@@ -10,17 +10,16 @@
 			body { padding: 1em;}
 		</style>
 		<script src="js/jquery.js"></script>
-		<script src="js/bootstrap.min.js"></script>
-		<script src="js/select2.min.js"></script>
-		<script src="js/mousetrap.min.js"></script>
-		<script src="js/highlight.min.js"></script>
+		<script src="js/bootstrap.js"></script>
+		<script src="js/select2.js"></script>
+		<script src="js/mousetrap.js"></script>
+		<script src="js/highlight.js"></script>
 		<script src="results.js"></script>
 		<script>
 
-			var registered_uids = null, exercises = null, cases = null;
 			var $seluid, $selex, $selcase,
 				$sources, $cases,
-				$suid, $sinfo, $sip,
+				$suid, $sip,
 				$nsources, $ncases, $ntext;
 
 			Mousetrap.bind( 'q', function() { _uid( -1 ); } );
@@ -38,34 +37,41 @@
 				var uid = parseInt( $seluid.select2( "val" ) )
 				if ( typeof delta !== 'undefined' ) {
 					var new_uid = uid + delta;
-					if ( 0 <= new_uid && new_uid < registered_uids.length )
+					if ( 0 <= new_uid && new_uid < rerults.length )
 						$seluid.select2( "val", new_uid );
 				} else return uid;
+			}
+
+			function _exercises() {
+				return rerults[ _uid() ].exercises;
 			}
 
 			function _ex( delta ) {
 				var ex = parseInt( $selex.select2( "val" ) );
 				if ( typeof delta !== 'undefined' ) {
 					var new_ex = ex + delta;
-					if ( 0 <= new_ex && new_ex < exercises.length )
+					if ( 0 <= new_ex && new_ex < _exercises().length )
 						$selex.select2( "val", new_ex );
-					$nsources.tab( 'show' );
 				} else return ex;
+			}
+
+			function _cases() {
+				return _exercises()[ _ex() ].cases;
 			}
 
 			function _cn( delta ) {
 				var cn = parseInt( $selcase.select2( "val" ) );
 				if ( typeof delta !== 'undefined' ) {
 					var new_cn = cn + delta;
-					if ( 0 <= new_cn && new_cn < cases.length )
+					if ( 0 <= new_cn && new_cn < _cases().length )
 						$selcase.select2( "val", new_cn );
 					$ncases.tab( 'show' );
 				} else return cn;
 			}
 
-			function update_cn( e ) {
+			function update_case( e ) {
 				var cn = _cn();
-				var cc = cases[ cn ];
+				var cc = _cases()[ cn ];
 				var res = [];
 				$.each( [ 'failure', 'error', 'stdout', 'stderr' ], function( i, e ) {
 					if ( cc[ e ] != null ) res.push(
@@ -89,8 +95,8 @@
 					$cases.html( '<div class="alert alert-success">no problems found</div>' );
 			}
 
-			function update_ex( e ) {
-				var ct = exercises[ _ex() ];
+			function update_exercise() {
+				var ct = _exercises()[ _ex() ];
 				var res = [];
 				$.each( ct.sources, function( p ) {
 					res.push( $( '<div/>' ).append(
@@ -104,82 +110,74 @@
 					$.each( res, function( i, s ) { $sources.append( s ) } );
 				} else
 					$sources.html( '<div class="alert alert-error">no source file found</div>' );
-				cases = [];
-				$.each( ct.cases, function( idx ) {
-					this[ 'id' ] = String( idx );
-					this[ 'text' ] = this[ 'name' ];
-					cases.push( this );
-				});
 				$selcase.select2( "val", 0 );
 			}
 
-			function update_uid( e ) {
-				var uid = _uid();
-				function _ok( data ) {
-					var sig = data.signature;
-					$suid.html( sig[ 0 ] );
-					$sinfo.html( sig[ 1 ] );
-					$sip.html( sig[ 2 ] );
-					exercises = [];
-					$.each( data.exercises, function( name ) {
-						this[ 'text' ] = name;
-						exercises.push( this );
+			function update_uid() {
+				var sig = rerults[ _uid() ].signature;
+				$suid.html( sig[ 0 ] );
+				$sip.html( sig[ 2 ] );
+				if ( isNaN( _ex() ) ) $selex.select2( "val", "0" );
+				update_exercise();
+			}
+
+			function setup() {
+
+				function _addid( array ) {
+					$.each( array, function( k, v ) { v.id = String( k ); } );
+				}
+
+				function _edit( hash, func ) {
+					var id = 0;
+					var array = [];
+					$.each( hash, function( key, val ) {
+						func( key, val );
+						array.push( val );
+					});
+					return array;
+				}
+
+				rerults = _edit( results, function( uid, res ) {
+					console.log( "Processing", uid, res.signature[1] );
+					res.text = res.signature[ 1 ];
+					res.uid = res.signature[ 0 ];
+					var exercises = _edit( res.exercises, function( name, exercise ) {
+						exercise.text = name;
+						var cases = _edit( exercise.cases, function( idx, cn ) {
+							cn[ 'text' ] = cn[ 'name' ];
+						});
+						_addid( cases );
+						exercise.cases = cases;
 					});
 					exercises.sort(
 						function( a, b ) { return a.text < b.text ? -1 : ( a.text > b.text ? 1 : 0 );
 					});
-					$.each( exercises, function( idx ) {
-						this[ 'id' ] = String( idx );
-					});
-					if ( isNaN( _ex() ) ) $selex.select2( "val", "0" );
-					update_ex();
-				}
-				function _err() {
-					exercises = [];
-					cases = [];
-					$suid.html( 'NOT FOUND' );
-					$sinfo.html( 'NOT FOUND' );
-					$sip.html( 'NOT FOUND' );
-					$sources.html( '<div class="alert alert-error">NOT FOUND</div>' );
-					$cases.html( '<div class="alert alert-error">NOT FOUND</div>' );
-				}
-				//$.getJSON( '/'+ registered_uids[ uid ].uid + '/latest/TESTS.json', _ok ).fail( _err );
-				_ok( results[ registered_uids[ uid ].uid ] );
-			}
-
-			function setup( data ) {
-
-				registered_uids = [];
-				var n = 0;
-				$.each( results, function( uid, val ) {
-					registered_uids.push( {
-						id: String( n++ ),
-						text: val.signature[ 1 ],
-						'uid': val.signature[ 0 ]
-					});
+					_addid( exercises );
+					res.exercises = exercises;
 				});
+				_addid( rerults );
 
-				$seluid.select2({ data: registered_uids, width: 'resolve' }).on( "change", update_uid );
+				$seluid.select2({ data: rerults, width: 'resolve' }).on( "change", update_uid );
 
     			$selex.select2({
 					width: 'resolve',
 					initSelection: function( element, callback ) {
-						callback( exercises[ element.val() ] );
+						callback( _exercises()[ element.val() ] );
 					},
 					query: function( query ) {
-			        	query.callback( { results: exercises } );
+			        	query.callback( { results: _exercises() } );
     				}
-    			}).on( "change", update_ex );
+    			}).on( "change", update_exercise );
 
     			$selcase.select2({
 					width: 'resolve',
 					initSelection: function( element, callback ) {
-						callback( cases[ element.val() ] );
+						callback( _cases()[ element.val() ] );
 					},
 					query: function( query ) {
-			        	query.callback( { results: cases } );
+			        	query.callback( { results: _cases() } );
     				}
-    			}).on( "change", update_cn );
+    			}).on( "change", update_case );
 
     			$seluid.select2( "val", "0", true );
 
@@ -193,13 +191,11 @@
 				$sources = $( '#sources' );
 				$cases = $( '#cases' );
 				$suid = $( '#suid' );
-				$sinfo = $( '#sinfo' );
 				$sip = $( '#sip' );
 				$nsources = $( "#sections_nav a[href='#sources']" );
 				$ncases = $( "#sections_nav a[href='#cases']" );
 				$ntext = $( "#sections_nav a[href='#text']" );
 
-				//$.get( '/registered_uids.tsv', setup );
 				setup();
 
 			});
@@ -212,40 +208,33 @@
 	<div class="span2">
 
 		<form><fieldset>
-		<legend>Chooser</legend>
-		<label>UID</label>
+		<label>Info</label>
 		<input type="hidden" id="seluid"/>
 		<label>Exercise</label>
 		<input type="hidden" id="selex"/>
 		<label>Case</label>
 		<input type="hidden" id="selcase"/>
 		</fieldset></form>
-
+		<hr/>
+		<label>UID</label>
+		<span class="uneditable-input" id="suid"></span>
+		<label>IP</label>
+		<span class="uneditable-input" id="sip"></span>
+		<hr/>
 		<ul id="sections_nav" class="nav nav-pills nav-stacked">
 			<li class="active"><a href="#sources" data-toggle="tab">Sources</a></li>
 			<li><a href="#cases" data-toggle="tab">Cases</a></li>
 			<li><a href="#text" data-toggle="tab">Text</a></li>
 		</ul>
 
-		<form><fieldset>
-		<legend>Signature</legend>
-		<label>UID</label>
-		<span class="uneditable-input" id="suid"></span>
-		<label>Info</label>
-		<span class="uneditable-input" id="sinfo"></span>
-		<label>IP</label>
-		<span class="uneditable-input" id="sip"></span>
-		</fieldset></form>
-
 	</div><!-- sidebar -->
 
 	<div class="span10">
 
-
 		<div id="sections_content" class="tab-content">
-			<div class="tab-pane fade in active" id="sources"></div>
-			<div class="tab-pane fade" id="cases"></div>
-			<div class="tab-pane fade" id="text"></div>
+			<div class="tab-pane active" id="sources"></div>
+			<div class="tab-pane" id="cases"></div>
+			<div class="tab-pane" id="text"></div>
 		</div>
 
 	</div><!-- body -->
