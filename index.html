@@ -16,20 +16,11 @@
 		<script src="js/highlight.min.js"></script>
 		<script>
 
-			var registered_uids = [
-				{ id: "0", text: "TRAVAINI STEFANO", uid: "709617" },
-				{ id: "1", text: "VILLA GOFFREDO", uid: "748237" },
-				{ id: "2", text: "LAGUARDIA FRANCESCO", uid: "755773" },
-				{ id: "3", text: "COLETTO STEFANO", uid: "755857" },
-				{ id: "4", text: "RINALDI LORENZO", uid: "760759" },
-				{ id: "5", text: "SCHIAVONI FEDERICO", uid: "773897" },
-				{ id: "6", text: "FESTA FABIO", uid: "773940" },
-				{ id: "7", text: "BERTIN EMILIO", uid: "775344" },
-				{ id: "8", text: "SCHIEDA JACOPO", uid: "777054" },
-				{ id: "9", text: "BRIVIO RAFFAELE", uid: "785271" }
-			];
-			var exercises = null, cases = null;
-			var $seluid, $selex, $selcase, $sources, $cases, $suid, $sinfo, $sip;
+			var registered_uids = null, exercises = null, cases = null;
+			var $seluid, $selex, $selcase,
+				$sources, $cases,
+				$suid, $sinfo, $sip,
+				$nsources, $ncases, $ntext;
 
 			Mousetrap.bind( 'q', function() { _uid( -1 ); } );
 			Mousetrap.bind( 'w', function() { _uid( +1 ); } );
@@ -37,9 +28,9 @@
 			Mousetrap.bind( 's', function() { _ex( +1 ); } );
 			Mousetrap.bind( 'z', function() { _cn( -1 ); } );
 			Mousetrap.bind( 'x', function() { _cn( +1 ); } );
-			Mousetrap.bind( 'i', function() { $( "#sections_nav a[href='#sources']" ).tab( 'show' ); } );
-			Mousetrap.bind( 'o', function() { $( "#sections_nav a[href='#cases']" ).tab( 'show' ); } );
-			Mousetrap.bind( 'p', function() { $( "#sections_nav a[href='#text']" ).tab( 'show' ); } );
+			Mousetrap.bind( 'i', function() { $nsources.tab( 'show' ); } );
+			Mousetrap.bind( 'o', function() { $ncases.tab( 'show' ); } );
+			Mousetrap.bind( 'p', function() { $ntext.tab( 'show' ); } );
 
 			function _uid( delta ) {
 				var uid = parseInt( $seluid.select2( "val" ) )
@@ -56,6 +47,7 @@
 					var new_ex = ex + delta;
 					if ( 0 <= new_ex && new_ex < exercises.length )
 						$selex.select2( "val", new_ex );
+					$nsources.tab( 'show' );
 				} else return ex;
 			}
 
@@ -65,6 +57,7 @@
 					var new_cn = cn + delta;
 					if ( 0 <= new_cn && new_cn < cases.length )
 						$selcase.select2( "val", new_cn );
+					$ncases.tab( 'show' );
 				} else return cn;
 			}
 
@@ -151,16 +144,15 @@
 				$.getJSON( '/'+ registered_uids[ uid ].uid + '/latest/TESTS.json', _ok ).fail( _err );
 			}
 
-			$(function() {
+			function setup( data ) {
 
-				$seluid = $( "#seluid" );
-				$selex = $( "#selex" );
-				$selcase = $( "#selcase" );
-				$sources = $( '#sources' );
-				$cases = $( '#cases' );
-				$suid = $( '#suid' );
-				$sinfo = $( '#sinfo' );
-				$sip = $( '#sip' );
+				registered_uids = [];
+				$.each( data.split( '\n' ), function( idx, v ) {
+					if ( v ) {
+						var uid_info = v.split( '\t' );
+						registered_uids.push( { id: String( idx ), uid: uid_info[ 0 ], text: uid_info[ 1 ] } );
+					}
+				});
 
 				$seluid.select2({ data: registered_uids, width: 'resolve' }).on( "change", update_uid );
 				$seluid.select2( "val", "0", true );
@@ -184,6 +176,24 @@
 			        	query.callback( { results: cases } );
     				}
     			}).on( "change", update_cn );
+
+			}
+
+			$(function() {
+
+				$seluid = $( "#seluid" );
+				$selex = $( "#selex" );
+				$selcase = $( "#selcase" );
+				$sources = $( '#sources' );
+				$cases = $( '#cases' );
+				$suid = $( '#suid' );
+				$sinfo = $( '#sinfo' );
+				$sip = $( '#sip' );
+				$nsources = $( "#sections_nav a[href='#sources']" );
+				$ncases = $( "#sections_nav a[href='#cases']" );
+				$ntext = $( "#sections_nav a[href='#text']" );
+
+				$.get( '/registered_uids.tsv', setup );
 
 			});
 
