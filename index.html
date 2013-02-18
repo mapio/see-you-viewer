@@ -7,7 +7,10 @@
 		<link href="css/select2.css" rel="stylesheet"/>
 		<link href="css/highlight/solarized_light.css" rel="stylesheet"/>
 		<style>
-			body { padding: 1em;}
+			body { padding: 1em; }
+			div.progress { margin-bottom: 0px; }
+			table { table-layout: fixed; }
+ 			table th, table td { overflow: hidden; }
 		</style>
 		<script src="js/jquery.js"></script>
 		<script src="js/bootstrap.js"></script>
@@ -22,6 +25,7 @@
 				$suid, $sip,
 				$nsources, $ncases, $nsummary;
 
+			Mousetrap.bind( 'k', function() { $( 'div.progress' ).toggle(); $( 'span.badge' ).toggle(); } );
 			Mousetrap.bind( 'q', function() { _uid( -1 ); } );
 			Mousetrap.bind( 'w', function() { _uid( +1 ); } );
 			Mousetrap.bind( 'a', function() { _ex( -1 ); } );
@@ -162,28 +166,33 @@
 							n[ cn.type ]++;
 							if ( cn.failure ) n.failure += cn.failure.length;
 						});
+						n.tot = n.ok + n.diff + n.execution;
 						s[ ex.text ] = n;
 					});
 					$.each( ex_names, function( ex, name ) {
-						function _badge( k, l ) {
-							var v = s[ name ][ k ];
-							if ( v > 0 )
-								td.append( $( '<span class="badge badge' + ( l !='' ? '-' + l : '' ) + '"/>' ).text( v ) );
+						function _badge( k, l0, l1 ) {
+							if ( sn[ k ] > 0 )
+								td.append( $( '<span class="badge badge' + ( l0 !='' ? '-' + l0 : '' ) + '"/>' ).text( sn[ k ] ) );
+							if ( typeof l1 !== 'undefined' )
+								pb.append( $( '<div class="bar bar-' + l1 +'" style="width: ' + ( sn[ k ] * 100 / sn.tot ) +'%;"/>' ) );
 						}
 						var td = $( '<td/>' );
 						td.click( (function( r, c ) { return function() { _go( r, c ); } } )( uid, ex ) );
-						_badge( 'sources', 'info' );
-						_badge( 'ok', 'success' );
-						_badge( 'diff', 'warning' );
-						_badge( 'failure', '' );
-						_badge( 'execution', 'important' );
+						var pb = $( '<div class="progress"/>' );
+						var sn = s[ name ];
 
+						_badge( 'sources', '' );
+						_badge( 'ok', 'success', 'success' );
+						_badge( 'diff', 'important', 'danger' );
+						_badge( 'failure', 'warning' );
+						_badge( 'execution', 'info', 'info' );
+						td.append( pb );
 						tr.append( td );
 					});
 
 					body.append( tr );
 				});
-
+				$( 'div.progress' ).toggle();
 
 			}
 
@@ -303,7 +312,7 @@
 			<div class="tab-pane active" id="summary">
 				<table class="table table-bordered table-striped">
 					<thead>
-						<tr><th>UID<th>Info
+						<tr><th width="10%">UID<th width="20%">Info
 					</thead>
 					<tbody>
 					</tbody>
