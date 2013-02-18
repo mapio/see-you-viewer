@@ -17,6 +17,7 @@
 		<script src="js/select2.js"></script>
 		<script src="js/mousetrap.js"></script>
 		<script src="js/highlight.js"></script>
+		<script>var results = {};</script>
 		<script src="results.js"></script>
 		<script>
 
@@ -35,7 +36,7 @@
 			Mousetrap.bind( 'i', function() { $nsummary.tab( 'show' ); } );
 			Mousetrap.bind( 'o', function() { $nsources.tab( 'show' ); } );
 			Mousetrap.bind( 'p', function() { $ncases.tab( 'show' ); } );
-			Mousetrap.bind( 'esc', function() { $nsummary.focus(); } );
+			Mousetrap.bind( 'command+k', function() { $( 'input' ).blur(); } );
 
 			function _uid( delta ) {
 				var uid = parseInt( $seluid.select2( "val" ) )
@@ -56,7 +57,7 @@
 					var new_ex = ex + delta;
 					if ( 0 <= new_ex && new_ex < _exercises().length )
 						$selex.select2( "val", new_ex );
-				} else return ex;
+				} return ex;
 			}
 
 			function _cases() {
@@ -69,7 +70,7 @@
 					var new_cn = cn + delta;
 					if ( 0 <= new_cn && new_cn < _cases().length )
 						$selcase.select2( "val", new_cn );
-					$ncases.tab( 'show' );
+
 				} else return cn;
 			}
 
@@ -79,7 +80,7 @@
 				$nsources.tab( 'show' );
 			}
 
-			function update_case( e ) {
+			function update_case() {
 				var cn = _cn();
 				var cc = _cases()[ cn ];
 				var res = [];
@@ -103,9 +104,10 @@
 					$.each( res, function( i, r ) { $cases.append( r ) } );
 				} else
 					$cases.html( '<div class="alert alert-success">no problems found</div>' );
+				$ncases.tab( 'show' );
 			}
 
-			function update_exercise() {
+			function update_sources() {
 				var ct = _exercises()[ _ex() ];
 				var res = [];
 				$.each( ct.sources, function( p ) {
@@ -120,7 +122,9 @@
 					$.each( res, function( i, s ) { $sources.append( s ) } );
 				} else
 					$sources.html( '<div class="alert alert-error">no source file found</div>' );
-				$selcase.select2( "val", 0 );
+				if ( isNaN( _cn() ) ) $selcase.select2( "val", "0" );
+				$selcase.select2( "val", "0" );
+				$nsources.tab( 'show' );
 			}
 
 			function update_uid() {
@@ -128,10 +132,10 @@
 				$suid.html( sig[ 0 ] );
 				$sip.html( sig[ 2 ] );
 				if ( isNaN( _ex() ) ) $selex.select2( "val", "0" );
-				update_exercise();
+				update_sources();
 			}
 
-			function summary() {
+			function compute_summary() {
 
 				var ex_names = {};
 				$.each( results, function( i, res ) {
@@ -193,7 +197,6 @@
 					body.append( tr );
 				});
 				$( 'div.progress' ).toggle();
-
 			}
 
 			function fix_results() {
@@ -235,21 +238,21 @@
 
 			$(function() {
 
-				$seluid = $( "#seluid" );
-				$selex = $( "#selex" );
-				$selcase = $( "#selcase" );
+				$seluid = $( '#seluid' );
+				$selex = $( '#selex' );
+				$selcase = $( '#selcase' );
 				$sources = $( '#sources' );
 				$cases = $( '#cases' );
 				$suid = $( '#suid' );
 				$sip = $( '#sip' );
-				$nsources = $( "#sections_nav a[href='#sources']" );
-				$ncases = $( "#sections_nav a[href='#cases']" );
-				$nsummary = $( "#sections_nav a[href='#summary']" );
+				$nsources = $( '#sections_nav a[href="#sources"]' );
+				$ncases = $( '#sections_nav a[href="#cases"]' );
+				$nsummary = $( '#sections_nav a[href="#summary"]' );
 
 				fix_results();
-				summary();
+				compute_summary();
 
-				$seluid.select2({ data: results, width: 'resolve' }).on( "change", update_uid );
+				$seluid.select2({ data: results, width: 'resolve' }).on( 'change', update_uid );
 
     			$selex.select2({
 					width: 'resolve',
@@ -259,7 +262,7 @@
 					query: function( query ) {
 			        	query.callback( { results: _exercises() } );
     				}
-    			}).on( "change", update_exercise );
+    			}).on( 'change', update_sources );
 
     			$selcase.select2({
 					width: 'resolve',
@@ -269,9 +272,10 @@
 					query: function( query ) {
 			        	query.callback( { results: _cases() } );
     				}
-    			}).on( "change", update_case );
+    			}).on( 'change', update_case );
 
-    			$seluid.select2( "val", "0", true );
+				$seluid.select2( 'val', '0' );
+    			$nsummary.tab( 'show' );
 
 			});
 
@@ -307,9 +311,9 @@
 	<div class="span10">
 
 		<div id="sections_content" class="tab-content">
-			<div class="tab-pane " id="sources"></div>
+			<div class="tab-pane" id="sources"></div>
 			<div class="tab-pane" id="cases"></div>
-			<div class="tab-pane active" id="summary">
+			<div class="tab-pane" id="summary">
 				<table class="table table-bordered table-striped">
 					<thead>
 						<tr><th width="10%">UID<th width="20%">Info
