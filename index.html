@@ -18,9 +18,9 @@
 		<script>
 
 			var $seluid, $selex, $selcase,
-				$sources, $cases,
+				$sources, $cases, $summary,
 				$suid, $sip,
-				$nsources, $ncases, $ntext;
+				$nsources, $ncases, $nsummary;
 
 			Mousetrap.bind( 'q', function() { _uid( -1 ); } );
 			Mousetrap.bind( 'w', function() { _uid( +1 ); } );
@@ -28,22 +28,22 @@
 			Mousetrap.bind( 's', function() { _ex( +1 ); } );
 			Mousetrap.bind( 'z', function() { _cn( -1 ); } );
 			Mousetrap.bind( 'x', function() { _cn( +1 ); } );
-			Mousetrap.bind( 'i', function() { $nsources.tab( 'show' ); } );
-			Mousetrap.bind( 'o', function() { $ncases.tab( 'show' ); } );
-			Mousetrap.bind( 'p', function() { $ntext.tab( 'show' ); } );
-			Mousetrap.bind( 'esc', function() { $nsources.focus(); } );
+			Mousetrap.bind( 'i', function() { $nsummary.tab( 'show' ); } );
+			Mousetrap.bind( 'o', function() { $nsources.tab( 'show' ); } );
+			Mousetrap.bind( 'p', function() { $ncases.tab( 'show' ); } );
+			Mousetrap.bind( 'esc', function() { $nsummary.focus(); } );
 
 			function _uid( delta ) {
 				var uid = parseInt( $seluid.select2( "val" ) )
 				if ( typeof delta !== 'undefined' ) {
 					var new_uid = uid + delta;
-					if ( 0 <= new_uid && new_uid < rerults.length )
+					if ( 0 <= new_uid && new_uid < results.length )
 						$seluid.select2( "val", new_uid );
 				} else return uid;
 			}
 
 			function _exercises() {
-				return rerults[ _uid() ].exercises;
+				return results[ _uid() ].exercises;
 			}
 
 			function _ex( delta ) {
@@ -67,6 +67,12 @@
 						$selcase.select2( "val", new_cn );
 					$ncases.tab( 'show' );
 				} else return cn;
+			}
+
+			function _go( uid, exercise ) {
+				$seluid.select2( "val", uid );
+				$selex.select2( "val", exercise );
+				$nsources.tab( 'show' );
 			}
 
 			function update_case( e ) {
@@ -114,14 +120,74 @@
 			}
 
 			function update_uid() {
-				var sig = rerults[ _uid() ].signature;
+				var sig = results[ _uid() ].signature;
 				$suid.html( sig[ 0 ] );
 				$sip.html( sig[ 2 ] );
 				if ( isNaN( _ex() ) ) $selex.select2( "val", "0" );
 				update_exercise();
 			}
 
-			function setup() {
+			function summary() {
+
+				var ex_names = {};
+				$.each( results, function( i, res ) {
+					$.each( res.exercises, function( i, ex ) {
+						ex_names[ ex.text ] = true;
+					});
+				});
+				ex_names = Object.keys( ex_names ).sort();
+
+				var head = $( 'thead>tr');
+				$.each( ex_names, function( i, name ) {
+					head.append( $( '<th/>' ).text( name ) );
+				});
+
+				var body = $( 'tbody' );
+				$.each( results, function( uid, res ) {
+					var tr = $( '<tr/> ');
+					tr.append( $( '<th/>').text( res.uid ) );
+					tr.append( $( '<td/>').text( res.text ) );
+
+					var s = {};
+					$.each( res.exercises, function( i, ex ) {
+						var n = {
+							'sources': Object.keys( ex.sources ).length,
+							'compile': 0,
+							'execution': 0,
+							'diff': 0,
+							'ok': 0,
+							'failure': 0,
+						};
+						$.each( ex.cases, function( i, cn ) {
+							n[ cn.type ]++;
+							if ( cn.failure ) n.failure += cn.failure.length;
+						});
+						s[ ex.text ] = n;
+					});
+					$.each( ex_names, function( ex, name ) {
+						function _badge( k, l ) {
+							var v = s[ name ][ k ];
+							if ( v > 0 )
+								td.append( $( '<span class="badge badge' + ( l !='' ? '-' + l : '' ) + '"/>' ).text( v ) );
+						}
+						var td = $( '<td/>' );
+						td.click( (function( r, c ) { return function() { _go( r, c ); } } )( uid, ex ) );
+						_badge( 'sources', 'info' );
+						_badge( 'ok', 'success' );
+						_badge( 'diff', 'warning' );
+						_badge( 'failure', '' );
+						_badge( 'execution', 'important' );
+
+						tr.append( td );
+					});
+
+					body.append( tr );
+				});
+
+
+			}
+
+			function fix_results() {
 
 				function _addid( array ) {
 					$.each( array, function( k, v ) { v.id = String( k ); } );
@@ -137,8 +203,7 @@
 					return array;
 				}
 
-				rerults = _edit( results, function( uid, res ) {
-					console.log( "Processing", uid, res.signature[1] );
+				results = _edit( results, function( uid, res ) {
 					res.text = res.signature[ 1 ];
 					res.uid = res.signature[ 0 ];
 					var exercises = _edit( res.exercises, function( name, exercise ) {
@@ -155,9 +220,27 @@
 					_addid( exercises );
 					res.exercises = exercises;
 				});
-				_addid( rerults );
+				_addid( results );
 
-				$seluid.select2({ data: rerults, width: 'resolve' }).on( "change", update_uid );
+			}
+
+			$(function() {
+
+				$seluid = $( "#seluid" );
+				$selex = $( "#selex" );
+				$selcase = $( "#selcase" );
+				$sources = $( '#sources' );
+				$cases = $( '#cases' );
+				$suid = $( '#suid' );
+				$sip = $( '#sip' );
+				$nsources = $( "#sections_nav a[href='#sources']" );
+				$ncases = $( "#sections_nav a[href='#cases']" );
+				$nsummary = $( "#sections_nav a[href='#summary']" );
+
+				fix_results();
+				summary();
+
+				$seluid.select2({ data: results, width: 'resolve' }).on( "change", update_uid );
 
     			$selex.select2({
 					width: 'resolve',
@@ -180,23 +263,6 @@
     			}).on( "change", update_case );
 
     			$seluid.select2( "val", "0", true );
-
-			}
-
-			$(function() {
-
-				$seluid = $( "#seluid" );
-				$selex = $( "#selex" );
-				$selcase = $( "#selcase" );
-				$sources = $( '#sources' );
-				$cases = $( '#cases' );
-				$suid = $( '#suid' );
-				$sip = $( '#sip' );
-				$nsources = $( "#sections_nav a[href='#sources']" );
-				$ncases = $( "#sections_nav a[href='#cases']" );
-				$ntext = $( "#sections_nav a[href='#text']" );
-
-				setup();
 
 			});
 
@@ -222,9 +288,9 @@
 		<span class="uneditable-input" id="sip"></span>
 		<hr/>
 		<ul id="sections_nav" class="nav nav-pills nav-stacked">
-			<li class="active"><a href="#sources" data-toggle="tab">Sources</a></li>
+			<li class="active"><a href="#summary" data-toggle="tab">Summary</a></li>
+			<li><a href="#sources" data-toggle="tab">Sources</a></li>
 			<li><a href="#cases" data-toggle="tab">Cases</a></li>
-			<li><a href="#text" data-toggle="tab">Text</a></li>
 		</ul>
 
 	</div><!-- sidebar -->
@@ -232,9 +298,17 @@
 	<div class="span10">
 
 		<div id="sections_content" class="tab-content">
-			<div class="tab-pane active" id="sources"></div>
+			<div class="tab-pane " id="sources"></div>
 			<div class="tab-pane" id="cases"></div>
-			<div class="tab-pane" id="text"></div>
+			<div class="tab-pane active" id="summary">
+				<table class="table table-bordered table-striped">
+					<thead>
+						<tr><th>UID<th>Info
+					</thead>
+					<tbody>
+					</tbody>
+				</table>
+			</div>
 		</div>
 
 	</div><!-- body -->
