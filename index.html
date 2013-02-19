@@ -13,7 +13,7 @@
  			table th, table td { overflow: hidden; }
  			#printinfo { display: none; }
  			@media print {
-  				#summary, #cases, #navigation { display: none; }
+  				#summary_tab, #cases_tab, #navigation { display: none; }
   				#printinfo {
   					display: block;
   					padding: 1em;
@@ -24,106 +24,78 @@
 		</style>
 		<script src="js/jquery.js"></script>
 		<script src="js/bootstrap.js"></script>
-		<script src="js/select2.js"></script>
 		<script src="js/mousetrap.js"></script>
 		<script src="js/highlight.js"></script>
 		<script>var results = {};</script>
 		<script src="results.js"></script>
 		<script>
 
-			var $seluid, $selex, $selcase,
-				$sourcefiles, $cases, $summary,
-				$suid, $sip, $psignature,
-				$nsources, $ncases, $nsummary;
+			var $info, $uid, $exercise, $case, $ip, $signature,
+				$sources, $cases,
+				$sources_tab, $cases_tab, $summary_tab;
 
-			Mousetrap.bind( 'q', function() { _uid( -1 ); } );
-			Mousetrap.bind( 'w', function() { $nsummary.tab( 'show' ); } );
+			var current = {}, infos = [];
+
+			Mousetrap.bind( 'q', function() { update_uid( -1 ); } );
+			Mousetrap.bind( 'w', function() { $summary_tab.tab( 'show' ); } );
 			Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badge' ).toggle(); } );
-			Mousetrap.bind( 'e', function() { _uid( +1 ); } );
+			Mousetrap.bind( 'e', function() { update_uid( +1 ); } );
 
-			Mousetrap.bind( 'a', function() { _ex( -1 ); } );
-			Mousetrap.bind( 's', function() { $nsources.tab( 'show' ); } );
-			Mousetrap.bind( 'd', function() { _ex( +1 ); } );
+			Mousetrap.bind( 'a', function() { update_exercise( -1 ); } );
+			Mousetrap.bind( 's', function() { $sources_tab.tab( 'show' ); } );
+			Mousetrap.bind( 'd', function() { update_exercise( +1 ); } );
 
-			Mousetrap.bind( 'z', function() { _cn( -1 ); } );
-			Mousetrap.bind( 'x', function() { $ncases.tab( 'show' ); } );
-			Mousetrap.bind( 'c', function() { _cn( +1 ); } );
+			Mousetrap.bind( 'z', function() { update_case( -1 ); } );
+			Mousetrap.bind( 'x', function() { $cases_tab.tab( 'show' ); } );
+			Mousetrap.bind( 'c', function() { update_case( +1 ); } );
 
-			Mousetrap.bind( 'esc', function() { $nsummary.focus(); } );
+			Mousetrap.bind( 'esc', function() { $summary_tab.focus(); } );
 
-			function _uid( delta ) {
-				var uid = parseInt( $seluid.select2( "val" ) )
+
+			function update_case( delta ) {
+				var cases = results[ current.uid ].exercises[ current.exercise ].cases;
 				if ( typeof delta !== 'undefined' ) {
-					var new_uid = uid + delta;
-					if ( 0 <= new_uid && new_uid < results.length )
-						$seluid.select2( "val", new_uid );
-				} else return uid;
-			}
-
-			function _exercises() {
-				return results[ _uid() ].exercises;
-			}
-
-			function _ex( delta ) {
-				var ex = parseInt( $selex.select2( "val" ) );
-				if ( typeof delta !== 'undefined' ) {
-					var new_ex = ex + delta;
-					if ( 0 <= new_ex && new_ex < _exercises().length )
-						$selex.select2( "val", new_ex );
-				} return ex;
-			}
-
-			function _cases() {
-				return _exercises()[ _ex() ].cases;
-			}
-
-			function _cn( delta ) {
-				var cn = parseInt( $selcase.select2( "val" ) );
-				if ( typeof delta !== 'undefined' ) {
-					var new_cn = cn + delta;
-					if ( 0 <= new_cn && new_cn < _cases().length )
-						$selcase.select2( "val", new_cn );
-
-				} else return cn;
-			}
-
-			function _go( uid, exercise ) {
-				$seluid.select2( "val", uid );
-				$selex.select2( "val", exercise );
-				$nsources.tab( 'show' );
-			}
-
-			function update_case() {
-				var cn = _cn();
-				var cc = _cases()[ cn ];
+					var t = current.case + delta;
+					if ( 0 <= t && t < cases.length ) current.case = t;
+					else return;
+				}
+				var cur = cases[ current.case ];
+				$case.text( cur.name );
 				var res = [];
 				$.each( [ 'failure', 'error', 'stdout', 'stderr' ], function( i, e ) {
-					if ( cc[ e ] != null ) res.push(
+					if ( cur[ e ] != null ) res.push(
 						$( '<div/>' ).html(
 							'<span class="label">' + e + '</span>'
 						).append(
-							cn > 0 ?
-								$( '<pre/>' ).html( hljs.highlight( 'diff', cc[ e ] ).value )
+							current.case > 0 ?
+								$( '<pre/>' ).html( hljs.highlight( 'diff', cur[ e ] ).value )
 							:
-								$( '<pre/>' ).text( cc[ e ] )
+								$( '<pre/>' ).text( cur[ e ] )
 						)
 					);
 				});
 				if ( res.length > 0 ) {
-					if ( cn > 0 )
+					if ( current.case > 0 )
 						$cases.html( '<div class="alert alert-error">problems found</div>' );
 					else
 						$cases.html( '<div class="alert alert-info">make output</div>' );
 					$.each( res, function( i, r ) { $cases.append( r ) } );
 				} else
 					$cases.html( '<div class="alert alert-success">no problems found</div>' );
-				$ncases.tab( 'show' );
+				$cases_tab.tab( 'show' );
 			}
 
-			function update_sources() {
-				var ct = _exercises()[ _ex() ];
+			function update_exercise( delta ) {
+				var exercises = results[ current.uid ].exercises;
+				if ( typeof delta !== 'undefined' ) {
+					var t = current.exercise + delta;
+					if ( 0 <= t && t < exercises.length ) current.exercise = t;
+					else return;
+				}
+				var cur = exercises[ current.exercise ];
+				$exercise.text( cur.name );
 				var res = [];
-				$.each( ct.sources, function( p ) {
+				$.each( cur.sources, function( p ) {
 					res.push( $( '<div/>' ).append(
 						'<span class="label">' + p + '</span>'
 					).append(
@@ -131,22 +103,28 @@
 					));
 				});
 				if ( res.length > 0 ) {
-					$sourcefiles.html( '' );
-					$.each( res, function( i, s ) { $sourcefiles.append( s ) } );
+					$sources.html( '' );
+					$.each( res, function( i, s ) { $sources.append( s ) } );
 				} else
-					$sourcefiles.html( '<div class="alert alert-error">no source file found</div>' );
-				if ( isNaN( _cn() ) ) $selcase.select2( "val", "0" );
-				$selcase.select2( "val", "0" );
-				$nsources.tab( 'show' );
+					$sources.html( '<div class="alert alert-error">no source file found</div>' );
+				current.case = 0;
+				update_case();
+				$sources_tab.tab( 'show' );
 			}
 
-			function update_uid() {
-				var sig = results[ _uid() ].signature;
-				$suid.html( sig[ 0 ] );
-				$sip.html( sig[ 2 ] );
-				$psignature.text( sig.toString() );
-				if ( isNaN( _ex() ) ) $selex.select2( "val", "0" );
-				update_sources();
+			function update_uid( delta ) {
+				if ( typeof delta !== 'undefined' ) {
+					var t = current.uid + delta;
+					if ( 0 <= t && t < results.length ) current.uid = t;
+					else return;
+				}
+				var cur = results[ current.uid ];
+				$uid.text( cur.uid );
+				$info.val( cur.info );
+				$ip.text( cur.ip );
+				$signature.text( cur.signature.toString() );
+				current.exercise = current.exercise || 0;
+				update_exercise();
 			}
 
 			function compute_summary() {
@@ -154,7 +132,7 @@
 				var ex_names = {};
 				$.each( results, function( i, res ) {
 					$.each( res.exercises, function( i, ex ) {
-						ex_names[ ex.text ] = true;
+						ex_names[ ex.name ] = true;
 					});
 				});
 				ex_names = Object.keys( ex_names ).sort();
@@ -168,7 +146,7 @@
 				$.each( results, function( uid, res ) {
 					var tr = $( '<tr/> ');
 					tr.append( $( '<th/>').text( res.uid ) );
-					tr.append( $( '<td/>').text( res.text ) );
+					tr.append( $( '<td/>').text( res.info ) );
 
 					var s = {};
 					$.each( res.exercises, function( i, ex ) {
@@ -185,8 +163,9 @@
 							if ( cn.failure ) n.failure += cn.failure.length;
 						});
 						n.tot = n.ok + n.diff + n.execution;
-						s[ ex.text ] = n;
+						s[ ex.name ] = n;
 					});
+
 					$.each( ex_names, function( ex, name ) {
 						function _badge( k, l0, l1 ) {
 							if ( sn[ k ] > 0 )
@@ -195,10 +174,13 @@
 								pb.append( $( '<div class="bar bar-' + l1 +'" style="width: ' + ( sn[ k ] * 100 / sn.tot ) +'%;"/>' ) );
 						}
 						var td = $( '<td/>' );
-						td.click( (function( r, c ) { return function() { _go( r, c ); } } )( uid, ex ) );
+						td.click( (function( r, c ) { return function() {
+							current.uid = uid, current.exercise = ex;
+							update_uid();
+							$sources_tab.tab( 'show' );
+						} })( uid, ex ) );
 						var pb = $( '<div class="progress"/>' );
 						var sn = s[ name ];
-
 						_badge( 'sources', '' );
 						_badge( 'ok', 'success', 'success' );
 						_badge( 'diff', 'important', 'danger' );
@@ -215,12 +197,10 @@
 
 			function fix_results() {
 
-				function _addid( array ) {
-					$.each( array, function( k, v ) { v.id = String( k ); } );
+				function _cmp( a, b ) {
+					return a.name < b.name ? -1 : ( a.name > b.name ? 1 : 0 );
 				}
-
 				function _edit( hash, func ) {
-					var id = 0;
 					var array = [];
 					$.each( hash, function( key, val ) {
 						func( key, val );
@@ -230,67 +210,60 @@
 				}
 
 				results = _edit( results, function( uid, res ) {
-					res.text = res.signature[ 1 ];
 					res.uid = res.signature[ 0 ];
+					res.info = res.signature[ 1 ];
+					infos.push( res.info );
+					res.ip = res.signature[ 2 ];
 					var exercises = _edit( res.exercises, function( name, exercise ) {
-						exercise.text = name;
-						var cases = _edit( exercise.cases, function( idx, cn ) {
-							cn[ 'text' ] = cn[ 'name' ];
-						});
-						_addid( cases );
-						exercise.cases = cases;
+						exercise.name = name;
+						var cm = exercise.cases.shift()
+						exercise.cases.sort( _cmp );
+						exercise.cases.unshift( cm );
 					});
-					exercises.sort(
-						function( a, b ) { return a.text < b.text ? -1 : ( a.text > b.text ? 1 : 0 );
-					});
-					_addid( exercises );
+					exercises.sort( _cmp );
 					res.exercises = exercises;
 				});
-				_addid( results );
 
 			}
 
 			$(function() {
 
-				$seluid = $( '#seluid' );
-				$selex = $( '#selex' );
-				$selcase = $( '#selcase' );
-				$sourcefiles = $( '#sourcefiles' );
+				$info = $( '#info' );
+				$uid = $( '#uid' );
+				$exercise = $( '#exercise' );
+				$case = $( '#case' );
+				$ip = $( '#ip' );
+				$signature = $( '#signature' );
+
+				$sources = $( '#sources' );
 				$cases = $( '#cases' );
-				$suid = $( '#suid' );
-				$sip = $( '#sip' );
-				$psignature = $( '#psignature' );
-				$nsources = $( '#sections_nav a[href="#sources"]' );
-				$ncases = $( '#sections_nav a[href="#cases"]' );
-				$nsummary = $( '#sections_nav a[href="#summary"]' );
+
+				$sources_tab = $( '#sections_nav a[href="#sources_tab"]' );
+				$cases_tab = $( '#sections_nav a[href="#cases_tab"]' );
+				$summary_tab= $( '#sections_nav a[href="#summary_tab"]' );
 
 				fix_results();
 				compute_summary();
 
-				$seluid.select2({ data: results, width: 'resolve' }).on( 'change', update_uid );
+				current.uid = 0;
+				update_uid();
+    			$summary_tab.tab( 'show' );
 
-    			$selex.select2({
-					width: 'resolve',
-					initSelection: function( element, callback ) {
-						callback( _exercises()[ element.val() ] );
-					},
-					query: function( query ) {
-			        	query.callback( { results: _exercises() } );
-    				}
-    			}).on( 'change', update_sources );
-
-    			$selcase.select2({
-					width: 'resolve',
-					initSelection: function( element, callback ) {
-						callback( _cases()[ element.val() ] );
-					},
-					query: function( query ) {
-			        	query.callback( { results: _cases() } );
-    				}
-    			}).on( 'change', update_case );
-
-				$seluid.select2( 'val', '0' );
-    			$nsummary.tab( 'show' );
+    			$info.typeahead({ source: infos });
+    			$info.on( "focus", function( e ) { $info.val( '' ); } );
+    			$info.on( "blur", function( e ) { $info.val( results[ current.uid ].info ); } );
+    			$info.keypress( function( e ) {
+					if ( e.which == 13 ) {
+						var t = infos.indexOf( $info.val() );
+						if ( t >= 0 ) {
+							current.uid = t;
+							update_uid();
+						}
+						$info.blur();
+						e.preventDefault();
+						return false;
+					}
+    			});
 
 			});
 
@@ -302,23 +275,22 @@
 	<div class="span2" id="navigation">
 
 		<form><fieldset>
+		<label>UID</label>
+		<span class="uneditable-input" id="uid"></span>
 		<label>Info</label>
-		<input type="hidden" id="seluid"/>
+		<input type="text" id="info" autocomplete="off">
 		<label>Exercise</label>
-		<input type="hidden" id="selex"/>
+		<span class="uneditable-input" id="exercise"></span>
 		<label>Case</label>
-		<input type="hidden" id="selcase"/>
+		<span class="uneditable-input" id="case"></span>
+		<label>IP</label>
+		<span class="uneditable-input" id="ip"></span>
 		</fieldset></form>
 		<hr/>
-		<label>UID</label>
-		<span class="uneditable-input" id="suid"></span>
-		<label>IP</label>
-		<span class="uneditable-input" id="sip"></span>
-		<hr/>
 		<ul id="sections_nav" class="nav nav-pills nav-stacked">
-			<li class="active"><a href="#summary" data-toggle="tab">Summary</a></li>
-			<li><a href="#sources" data-toggle="tab">Sources</a></li>
-			<li><a href="#cases" data-toggle="tab">Cases</a></li>
+			<li class="active"><a href="#summary_tab" data-toggle="tab">Summary</a></li>
+			<li><a href="#sources_tab" data-toggle="tab">Sources</a></li>
+			<li><a href="#cases_tab" data-toggle="tab">Cases</a></li>
 		</ul>
 
 	</div><!-- sidebar -->
@@ -326,14 +298,7 @@
 	<div class="span10">
 
 		<div id="sections_content" class="tab-content">
-			<div class="tab-pane" id="sources">
-				<div id="printinfo">
-					Signature: <span id="psignature"></span>.
-				</div>
-				<div id="sourcefiles"></div>
-			</div>
-			<div class="tab-pane" id="cases"></div>
-			<div class="tab-pane" id="summary">
+			<div class="tab-pane" id="summary_tab">
 				<table class="table table-bordered table-striped">
 					<thead>
 						<tr><th width="10%">UID<th width="20%">Info
@@ -341,6 +306,15 @@
 					<tbody>
 					</tbody>
 				</table>
+			</div>
+			<div class="tab-pane" id="sources_tab">
+				<div id="printinfo">
+					Signature: <span id="signature"></span>.
+				</div>
+				<div id="sources"></div>
+			</div>
+			<div class="tab-pane" id="cases_tab">
+				<div id="cases"></div>
 			</div>
 		</div>
 

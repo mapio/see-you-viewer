@@ -9,6 +9,5 @@ It is a local web application based on the following awesome projects:
 
 * [Bootstrap](http://twitter.github.com/bootstrap/),
 * [jQuery](http://jquery.com/),
-* [Select2](http://ivaynberg.github.com/select2/),
 * [Mousetrap](http://craig.is/killing/mice), and
 * [highlight.js](http://softwaremaniacs.org/soft/highlight/en/).
