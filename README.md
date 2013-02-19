@@ -1,7 +1,7 @@
 See you viewer
 ==============
 
-"See you viewer is a companion tool of [See you](https://github.com/mapio/see-you)
+"See you viewer" is a companion tool of [See you](https://github.com/mapio/see-you)
 (and [Tristo Mietitore](https://github.com/mapio/tristo-mietitore)) that can be
 used to assist in grading C practice and exam assignements.
 

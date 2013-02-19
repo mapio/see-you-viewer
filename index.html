@@ -36,17 +36,20 @@
 				$suid, $sip, $psignature,
 				$nsources, $ncases, $nsummary;
 
-			Mousetrap.bind( 'k', function() { $( 'div.progress' ).toggle(); $( 'span.badge' ).toggle(); } );
 			Mousetrap.bind( 'q', function() { _uid( -1 ); } );
-			Mousetrap.bind( 'w', function() { _uid( +1 ); } );
+			Mousetrap.bind( 'w', function() { $nsummary.tab( 'show' ); } );
+			Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badge' ).toggle(); } );
+			Mousetrap.bind( 'e', function() { _uid( +1 ); } );
+
 			Mousetrap.bind( 'a', function() { _ex( -1 ); } );
-			Mousetrap.bind( 's', function() { _ex( +1 ); } );
+			Mousetrap.bind( 's', function() { $nsources.tab( 'show' ); } );
+			Mousetrap.bind( 'd', function() { _ex( +1 ); } );
+
 			Mousetrap.bind( 'z', function() { _cn( -1 ); } );
-			Mousetrap.bind( 'x', function() { _cn( +1 ); } );
-			Mousetrap.bind( 'i', function() { $nsummary.tab( 'show' ); } );
-			Mousetrap.bind( 'o', function() { $nsources.tab( 'show' ); } );
-			Mousetrap.bind( 'p', function() { $ncases.tab( 'show' ); } );
-			Mousetrap.bind( 'command+k', function() { $( 'input' ).blur(); } );
+			Mousetrap.bind( 'x', function() { $ncases.tab( 'show' ); } );
+			Mousetrap.bind( 'c', function() { _cn( +1 ); } );
+
+			Mousetrap.bind( 'esc', function() { $nsummary.focus(); } );
 
 			function _uid( delta ) {
 				var uid = parseInt( $seluid.select2( "val" ) )
