@@ -11,6 +11,16 @@
 			div.progress { margin-bottom: 0px; }
 			table { table-layout: fixed; }
  			table th, table td { overflow: hidden; }
+ 			#printinfo { display: none; }
+ 			@media print {
+  				#summary, #cases, #navigation { display: none; }
+  				#printinfo {
+  					display: block;
+  					padding: 1em;
+  					border: 1pt solid black;
+  					margin-bottom: 1em;
+  				}
+			}
 		</style>
 		<script src="js/jquery.js"></script>
 		<script src="js/bootstrap.js"></script>
@@ -22,8 +32,8 @@
 		<script>
 
 			var $seluid, $selex, $selcase,
-				$sources, $cases, $summary,
-				$suid, $sip,
+				$sourcefiles, $cases, $summary,
+				$suid, $sip, $psignature,
 				$nsources, $ncases, $nsummary;
 
 			Mousetrap.bind( 'k', function() { $( 'div.progress' ).toggle(); $( 'span.badge' ).toggle(); } );
@@ -118,10 +128,10 @@
 					));
 				});
 				if ( res.length > 0 ) {
-					$sources.html( '' );
-					$.each( res, function( i, s ) { $sources.append( s ) } );
+					$sourcefiles.html( '' );
+					$.each( res, function( i, s ) { $sourcefiles.append( s ) } );
 				} else
-					$sources.html( '<div class="alert alert-error">no source file found</div>' );
+					$sourcefiles.html( '<div class="alert alert-error">no source file found</div>' );
 				if ( isNaN( _cn() ) ) $selcase.select2( "val", "0" );
 				$selcase.select2( "val", "0" );
 				$nsources.tab( 'show' );
@@ -131,6 +141,7 @@
 				var sig = results[ _uid() ].signature;
 				$suid.html( sig[ 0 ] );
 				$sip.html( sig[ 2 ] );
+				$psignature.text( sig.toString() );
 				if ( isNaN( _ex() ) ) $selex.select2( "val", "0" );
 				update_sources();
 			}
@@ -241,10 +252,11 @@
 				$seluid = $( '#seluid' );
 				$selex = $( '#selex' );
 				$selcase = $( '#selcase' );
-				$sources = $( '#sources' );
+				$sourcefiles = $( '#sourcefiles' );
 				$cases = $( '#cases' );
 				$suid = $( '#suid' );
 				$sip = $( '#sip' );
+				$psignature = $( '#psignature' );
 				$nsources = $( '#sections_nav a[href="#sources"]' );
 				$ncases = $( '#sections_nav a[href="#cases"]' );
 				$nsummary = $( '#sections_nav a[href="#summary"]' );
@@ -284,7 +296,7 @@
 	<body>
 	<div class="container-fluid"><div class="row-fluid">
 
-	<div class="span2">
+	<div class="span2" id="navigation">
 
 		<form><fieldset>
 		<label>Info</label>
@@ -311,7 +323,12 @@
 	<div class="span10">
 
 		<div id="sections_content" class="tab-content">
-			<div class="tab-pane" id="sources"></div>
+			<div class="tab-pane" id="sources">
+				<div id="printinfo">
+					Signature: <span id="psignature"></span>.
+				</div>
+				<div id="sourcefiles"></div>
+			</div>
 			<div class="tab-pane" id="cases"></div>
 			<div class="tab-pane" id="summary">
 				<table class="table table-bordered table-striped">
