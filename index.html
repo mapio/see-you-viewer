@@ -3,9 +3,9 @@
 	<head>
 	<title>See You Viewer</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<link href="css/bootstrap.min-16.css" rel="stylesheet" media="screen">
-		<link href="css/select2.css" rel="stylesheet"/>
+		<link href="css/bootstrap.css" rel="stylesheet" media="screen">
 		<link href="css/highlight/solarized_light.css" rel="stylesheet"/>
+		<link href="css/tablesorter.css" rel="stylesheet">
 		<style>
 			body { padding: 1em; }
 			div.progress { margin-bottom: 0px; }
@@ -26,6 +26,9 @@
 		<script src="js/bootstrap.js"></script>
 		<script src="js/mousetrap.js"></script>
 		<script src="js/highlight.js"></script>
+		<script src="js/jquery.tablesorter.js"></script>
+		<script src="js/jquery.tablesorter.widgets.js"></script>
+
 		<script>var results = {};</script>
 		<script src="results.js"></script>
 		<script>
@@ -50,7 +53,6 @@
 			Mousetrap.bind( 'c', function() { update_case( +1 ); } );
 
 			Mousetrap.bind( 'esc', function() { $summary_tab.focus(); } );
-
 
 			function update_case( delta ) {
 				var cases = results[ current.uid ].exercises[ current.exercise ].cases;
@@ -137,9 +139,9 @@
 				});
 				ex_names = Object.keys( ex_names ).sort();
 
-				var head = $( 'thead>tr');
+				var head = $( 'thead>tr' );
 				$.each( ex_names, function( i, name ) {
-					head.append( $( '<th/>' ).text( name ) );
+					head.append( $( '<th class="sorter-result"/>' ).text( name ) );
 				});
 
 				var body = $( 'tbody' );
@@ -192,6 +194,20 @@
 
 					body.append( tr );
 				});
+
+				$.tablesorter.addParser({
+					id: 'result',
+					is: function( s ) { return false; },
+					format: function( s, table, cell, cellIndex ) {
+						return $( cell ).children( '[class*="badge-success"]' ).text();
+					},
+					type: 'numeric'
+	    		});
+    			$( 'table' ).tablesorter({
+    				theme: 'bootstrap',
+					headerTemplate : '{content} {icon}',
+					widgets : [ "uitheme" ],
+    			});
 				$( 'div.progress' ).toggle();
 			}
 
