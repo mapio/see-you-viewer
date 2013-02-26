@@ -27,7 +27,7 @@ the following "BNF" grammar:
 
 	SOURCES := { ( <FILE_NAME>: CONTENT )* }
 
-	CASES := { ( <CASE_NUM>: <CASE> )+ }
+	CASES := { ( <CASE_NUM>: <CASE> )* }
 
 	CASE := { # the format of this depends on "See you" xUnit approach (see testrunner.py)
 				'name': <CASE_NAME>,
@@ -40,4 +40,6 @@ the following "BNF" grammar:
 
 	TYPE := 'compile' | 'execution' | 'diff' | 'ok'
 
-and all non-terminals not detailed here are understood to be unicode strings.
+and all non-terminals not detailed here are understood to be unicode strings;
+moreover, all the EXERCISES must share the same set of EXERCISE_NAME keys (but
+the same isn't required for CASES).

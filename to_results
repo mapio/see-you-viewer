@@ -10,13 +10,13 @@ from sys import argv
 base_dir = argv[ 1 ]
 exercise_names = frozenset( argv[ 2 ].split( ',' ) )
 
-SPLIT_PATTERN = recompile( join( base_dir, r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)' ) )
+SOURCES_PATTERN = recompile( join( base_dir, r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)' ) )
 
 res = defaultdict( lambda : defaultdict( lambda : defaultdict( lambda : defaultdict( lambda : defaultdict( lambda : dict ) ) ) ) )
 for root, dirs, files in walk( base_dir ):
 	for name in files:
 		path = join( root, name )
-		match = SPLIT_PATTERN.match( path )
+		match = SOURCES_PATTERN.match( path )
 		if match:
 			s = match.groupdict()
 			if s[ 'exercise' ] not in exercise_names: continue

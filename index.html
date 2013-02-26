@@ -31,7 +31,6 @@
 		<script>var results = {};</script>
 		<script src="results.js"></script>
 		<script>
-			console.log( results );
 
 			var $info, $uid, $exercise, $case, $ip, $signature,
 				$sources, $cases,
@@ -41,7 +40,7 @@
 
 			Mousetrap.bind( 'q', function() { update_uid( -1 ); } );
 			Mousetrap.bind( 'w', function() { $summary_tab.tab( 'show' ); } );
-			Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badge' ).toggle(); } );
+			Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badges' ).toggle(); } );
 			Mousetrap.bind( 'e', function() { update_uid( +1 ); } );
 
 			Mousetrap.bind( 'a', function() { update_exercise( -1 ); } );
@@ -172,26 +171,32 @@
 
 					$.each( ex_names, function( ex, name ) {
 						function _badge( k, l0, l1 ) {
-							if ( sn == null ) return;
-							if ( sn[ k ] > 0 )
-								td.append( $( '<span class="badge badge' + ( l0 !='' ? '-' + l0 : '' ) + '"/>' ).text( sn[ k ] ) );
+							var badge;
+							if ( sn == null ) return null;
+							if ( sn[ k ] > 0 ) {
+								badge = $( '<span class="badge badge' + ( l0 !='' ? '-' + l0 : '' ) + '"/>' ).text( sn[ k ] );
+								badges.append( badge );
+							}
 							if ( typeof l1 !== 'undefined' )
-								pb.append( $( '<div class="bar bar-' + l1 +'" style="width: ' + ( sn[ k ] * 100 / sn.tot ) +'%;"/>' ) );
+								progress.append( $( '<div class="bar bar-' + l1 +'" style="width: ' + ( sn[ k ] * 100 / sn.tot ) +'%;"/>' ) );
+							return badge;
 						}
 						var td = $( '<td/>' );
-						td.click( (function( r, c ) { return function() {
+						var badges = $( '<span class="badges"/>' );
+						var progress = $( '<div class="progress"/>' );
+						var sn = s[ name ];
+						var b = _badge( 'sources', '' );
+						if ( b != null ) b.click( (function( r, c ) { return function() {
 							current.uid = uid, current.exercise = ex;
 							update_uid();
 							$sources_tab.tab( 'show' );
 						} })( uid, ex ) );
-						var pb = $( '<div class="progress"/>' );
-						var sn = s[ name ];
-						_badge( 'sources', '' );
 						_badge( 'ok', 'success', 'success' );
 						_badge( 'diff', 'important', 'danger' );
 						_badge( 'failure', 'warning' );
 						_badge( 'execution', 'info', 'info' );
-						td.append( pb );
+						td.append( badges );
+						td.append( progress );
 						tr.append( td );
 					});
 
@@ -216,8 +221,11 @@
 
 			function fix_results() {
 
-				function _cmp( a, b ) {
-					return a.name < b.name ? -1 : ( a.name > b.name ? 1 : 0 );
+				function _cmp( field ) {
+					function _c( a, b ) {
+						return a[ field ] < b[ field ] ? -1 : ( a[ field ] > b[ field ] ? 1 : 0 );
+					}
+					return _c;
 				}
 				function _edit( hash, func ) {
 					var array = [];
@@ -238,12 +246,13 @@
 						var cases = exercise.cases;
 						if ( cases.length == 0 ) return;
 						var cm = cases.shift()
-						cases.sort( _cmp );
+						cases.sort( _cmp( 'name' ) );
 						cases.unshift( cm );
 					});
-					exercises.sort( _cmp );
+					exercises.sort( _cmp( 'name' ) );
 					res.exercises = exercises;
 				});
+				results.sort( _cmp( 'uid' ) );
 
 			}
 
@@ -345,7 +354,7 @@
 			<div class="tab-pane" id="summary_tab">
 				<table class="table table-bordered table-striped">
 					<thead>
-						<tr><th width="10%">UID<th width="20%">Info
+						<tr><th>UID<th>Info
 					</thead>
 					<tbody>
 					</tbody>
