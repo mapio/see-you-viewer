@@ -172,6 +172,7 @@
 
 					$.each( ex_names, function( ex, name ) {
 						function _badge( k, l0, l1 ) {
+							if ( sn == null ) return;
 							if ( sn[ k ] > 0 )
 								td.append( $( '<span class="badge badge' + ( l0 !='' ? '-' + l0 : '' ) + '"/>' ).text( sn[ k ] ) );
 							if ( typeof l1 !== 'undefined' )

@@ -1,12 +1,15 @@
+#!/usr/bin/env python
+
 from collections import defaultdict
 from json import dumps
 from re import compile as recompile
 from os import walk
 from os.path import join
+from sys import argv
 
-base_dir = '/tmp/xxx'
+base_dir = argv[ 1 ]
 
-SPLIT_PATTERN = recompile( r'{0}/(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)'.format( base_dir ) )
+SPLIT_PATTERN = recompile( join( base_dir, r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)' ) )
 
 res = defaultdict( lambda : defaultdict( lambda : defaultdict( lambda : defaultdict( lambda : defaultdict( lambda : dict ) ) ) ) )
 for root, dirs, files in walk( base_dir ):
