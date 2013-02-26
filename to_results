@@ -8,6 +8,7 @@ from os.path import join
 from sys import argv
 
 base_dir = argv[ 1 ]
+exercise_names = frozenset( argv[ 2 ].split( ',' ) )
 
 SPLIT_PATTERN = recompile( join( base_dir, r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)' ) )
 
@@ -18,12 +19,16 @@ for root, dirs, files in walk( base_dir ):
 		match = SPLIT_PATTERN.match( path )
 		if match:
 			s = match.groupdict()
-			with open( path, 'r' ) as f:
-				res[ s[ 'uid' ] ][ 'exercises' ][ s[ 'exercise' ] ][ 'sources' ][ s[ 'source' ] ] = f.read()
-				res[ s[ 'uid' ] ][ 'exercises' ][ s[ 'exercise' ] ][ 'cases' ] = []
-
+			if s[ 'exercise' ] not in exercise_names: continue
+			with open( path, 'r' ) as f: exercise_text = f.read()
+			res[ s[ 'uid' ] ][ 'exercises' ][ s[ 'exercise' ] ] = {
+				'sources': { s[ 'source']: exercise_text }, 'cases': []
+			}
 
 for uid, rest in res.items():
 	res[ uid ][ 'signature' ] = [ uid, uid, '' ]
+	for exercise in exercise_names:
+		if exercise not in res[ uid ][ 'exercises' ]:
+			res[ uid ][ 'exercises' ][ exercise ] = { 'sources': {}, 'cases': [] }
 
 print 'results = {0};'.format( dumps( res ) )

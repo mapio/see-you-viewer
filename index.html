@@ -236,7 +236,7 @@
 					var exercises = _edit( res.exercises, function( name, exercise ) {
 						exercise.name = name;
 						var cases = exercise.cases;
-						if ( $.isEmptyObject( cases ) ) return;
+						if ( cases.length == 0 ) return;
 						var cm = cases.shift()
 						cases.sort( _cmp );
 						cases.unshift( cm );
