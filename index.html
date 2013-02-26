@@ -2,7 +2,6 @@
 <html>
 	<head>
 	<title>See You Viewer</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link href="css/bootstrap.css" rel="stylesheet" media="screen">
 		<link href="css/highlight/solarized_light.css" rel="stylesheet"/>
 		<link href="css/tablesorter.css" rel="stylesheet">
@@ -15,7 +14,7 @@
  			@media print {
   				#summary_tab, #cases_tab, #navigation { display: none; }
   				#printinfo {
-  					display: block;
+s  					display: block;
   					padding: 1em;
   					border: 1pt solid black;
   					margin-bottom: 1em;
@@ -25,12 +24,14 @@
 		<script src="js/jquery.js"></script>
 		<script src="js/bootstrap.js"></script>
 		<script src="js/highlight.js"></script>
+		<script src="js/mousetrap.js"></script>
 		<script src="js/jquery.tablesorter.js"></script>
 		<script src="js/jquery.tablesorter.widgets.js"></script>
 
 		<script>var results = {};</script>
 		<script src="results.js"></script>
 		<script>
+			console.log( results );
 
 			var $info, $uid, $exercise, $case, $ip, $signature,
 				$sources, $cases,
