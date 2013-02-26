@@ -12,9 +12,9 @@
  			table th, table td { overflow: hidden; }
  			#printinfo { display: none; }
  			@media print {
-  				#summary_tab, #cases_tab, #navigation { display: none; }
+  				#summary_tab, #cases_tab, #navigation, #shortcuts { display: none; }
   				#printinfo {
-s  					display: block;
+ 					display: block;
   					padding: 1em;
   					border: 1pt solid black;
   					margin-bottom: 1em;
@@ -52,10 +52,12 @@ s  					display: block;
 			Mousetrap.bind( 'x', function() { $cases_tab.tab( 'show' ); } );
 			Mousetrap.bind( 'c', function() { update_case( +1 ); } );
 
-			Mousetrap.bind( 'esc', function() { $summary_tab.focus(); } );
+			Mousetrap.bind( 'h', function() { $( '#shortcuts' ).modal( 'toggle' ); } );
+
 
 			function update_case( delta ) {
 				var cases = results[ current.uid ].exercises[ current.exercise ].cases;
+				if ( cases.length == 0 ) return;
 				if ( typeof delta !== 'undefined' ) {
 					var t = current.case + delta;
 					if ( 0 <= t && t < cases.length ) current.case = t;
@@ -232,9 +234,11 @@ s  					display: block;
 					res.ip = res.signature[ 2 ];
 					var exercises = _edit( res.exercises, function( name, exercise ) {
 						exercise.name = name;
-						var cm = exercise.cases.shift()
-						exercise.cases.sort( _cmp );
-						exercise.cases.unshift( cm );
+						var cases = exercise.cases;
+						if ( $.isEmptyObject( cases ) ) return;
+						var cm = cases.shift()
+						cases.sort( _cmp );
+						cases.unshift( cm );
 					});
 					exercises.sort( _cmp );
 					res.exercises = exercises;
@@ -286,6 +290,29 @@ s  					display: block;
 		</script>
 	</head>
 	<body>
+
+	<div id="shortcuts" class="modal hide" data-keyboard="true">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal">&times;</button>
+			<h3>Keyboard shortcuts</h3>
+		</div>
+		<div class="modal-body">
+			<ul>
+			<li><kbd>h</kbd>: toggle this help,</li>
+			<li><kbd>r</kbd>: toggle number/bars in summary,</li>
+			<li><kbd>q</kbd>,
+				<kbd>w</kbd>,
+				<kbd>e</kbd>: previous <em>uid</em>, summary, next <em>uid</em>,</li>
+			<li><kbd>a</kbd>,
+				<kbd>s</kbd>,
+				<kbd>d</kbd>: previous, current, next <em>exercise</em>,</li>
+			<li><kbd>z</kbd>,
+				<kbd>x</kbd>,
+				<kbd>c</kbd>: previous, current, next <em>case</em>.</li>
+			</ul>
+		</div>
+	</div>
+
 	<div class="container-fluid"><div class="row-fluid">
 
 	<div class="span2" id="navigation">
@@ -308,7 +335,7 @@ s  					display: block;
 			<li><a href="#sources_tab" data-toggle="tab">Sources</a></li>
 			<li><a href="#cases_tab" data-toggle="tab">Cases</a></li>
 		</ul>
-
+		<div class="alert alert-info">Press <kbd>h</kbd> for a list of shortcuts.</div>
 	</div><!-- sidebar -->
 
 	<div class="span10">

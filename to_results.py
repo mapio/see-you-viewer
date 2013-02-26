@@ -17,14 +17,7 @@ for root, dirs, files in walk( base_dir ):
 			s = match.groupdict()
 			with open( path, 'r' ) as f:
 				res[ s[ 'uid' ] ][ 'exercises' ][ s[ 'exercise' ] ][ 'sources' ][ s[ 'source' ] ] = f.read()
-				res[ s[ 'uid' ] ][ 'exercises' ][ s[ 'exercise' ] ][ 'cases' ] = [ {
-					'name': '',
-					'stdout': '',
-					'stderr': '',
-					'failure': '',
-					'error': '',
-					'type': '	'
-				} ]
+				res[ s[ 'uid' ] ][ 'exercises' ][ s[ 'exercise' ] ][ 'cases' ] = []
 
 
 for uid, rest in res.items():

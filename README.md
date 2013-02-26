@@ -27,7 +27,7 @@ the following "BNF" grammar:
 
 	SOURCES := { ( <FILE_NAME>: CONTENT )* }
 
-	CASES := { ( <CASE_NUM>: <CASE> )* }
+	CASES := { ( <CASE_NUM>: <CASE> )+ }
 
 	CASE := { # the format of this depends on "See you" xUnit approach (see testrunner.py)
 				'name': <CASE_NAME>,
