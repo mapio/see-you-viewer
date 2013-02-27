@@ -31,8 +31,8 @@
 				$evaluation, $score, $note, $sources, $cases,
 				$sources_tab, $cases_tab, $summary_tab;
 
-			var evaluations = [];
-			var current = {}, infos = [];
+			var evaluations = [], infos = []; /* will be filled by setup */
+			var current = { uid: 0, exercise: 0 };
 
 			Mousetrap.bind( 'q', function() { update_uid( -1 ); } );
 			Mousetrap.bind( 'w', function() { update_summary(); } );
@@ -139,7 +139,6 @@
 				$uid.text( cur.uid );
 				$info.val( cur.info );
 				$ip.text( cur.ip );
-				current.exercise = current.exercise || 0;
 				update_exercise();
 			}
 
@@ -151,7 +150,46 @@
 				$summary_tab.tab( 'show' );
 			}
 
-			function compute_summary() {
+			function fix_results() {
+
+				function _cmp( field ) {
+					function _c( a, b ) {
+						return a[ field ] < b[ field ] ? -1 : ( a[ field ] > b[ field ] ? 1 : 0 );
+					}
+					return _c;
+				}
+				function _edit( hash, func ) {
+					var array = [];
+					$.each( hash, function( key, val ) {
+						func( key, val );
+						array.push( val );
+					});
+					return array;
+				}
+
+				results = _edit( results, function( uid, res ) {
+					res.uid = res.signature[ 0 ];
+					res.info = res.signature[ 1 ];
+					infos.push( res.info );
+					res.ip = res.signature[ 2 ];
+					var exercises = _edit( res.exercises, function( name, exercise ) {
+						exercise.name = name;
+						var cases = exercise.cases;
+						if ( cases.length == 0 ) return;
+						var cm = cases.shift()
+						cases.sort( _cmp( 'name' ) );
+						cases.unshift( cm );
+					});
+					exercises.sort( _cmp( 'name' ) );
+					res.exercises = exercises;
+				});
+				results.sort( _cmp( 'uid' ) );
+
+			}
+
+			function setup() {
+
+				fix_results();
 
 				var ex_names = {};
 				$.each( results, function( i, res ) {
@@ -249,44 +287,9 @@
 					widgets : [ "uitheme" ],
     			});
 				$( 'div.progress' ).toggle();
-			}
-
-			function fix_results() {
-
-				function _cmp( field ) {
-					function _c( a, b ) {
-						return a[ field ] < b[ field ] ? -1 : ( a[ field ] > b[ field ] ? 1 : 0 );
-					}
-					return _c;
-				}
-				function _edit( hash, func ) {
-					var array = [];
-					$.each( hash, function( key, val ) {
-						func( key, val );
-						array.push( val );
-					});
-					return array;
-				}
-
-				results = _edit( results, function( uid, res ) {
-					res.uid = res.signature[ 0 ];
-					res.info = res.signature[ 1 ];
-					infos.push( res.info );
-					res.ip = res.signature[ 2 ];
-					var exercises = _edit( res.exercises, function( name, exercise ) {
-						exercise.name = name;
-						var cases = exercise.cases;
-						if ( cases.length == 0 ) return;
-						var cm = cases.shift()
-						cases.sort( _cmp( 'name' ) );
-						cases.unshift( cm );
-					});
-					exercises.sort( _cmp( 'name' ) );
-					res.exercises = exercises;
-				});
-				results.sort( _cmp( 'uid' ) );
 
 			}
+
 
 			$(function() {
 
@@ -307,13 +310,6 @@
 				$cases_tab = $( '#sections_nav a[href="#cases_tab"]' );
 				$summary_tab= $( '#sections_nav a[href="#summary_tab"]' );
 
-				fix_results();
-				compute_summary();
-
-				current.uid = 0;
-				update_uid();
-    			update_summary();
-
     			$info.typeahead({ source: infos });
     			$info.on( "focus", function( e ) { $info.val( '' ); } );
     			$info.on( "blur", function( e ) { $info.val( results[ current.uid ].info ); } );
@@ -329,6 +325,10 @@
 						return false;
 					}
     			});
+
+				setup();
+				update_uid();
+				update_summary();
 
 			});
 
