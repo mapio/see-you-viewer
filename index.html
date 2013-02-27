@@ -20,6 +20,7 @@
 		<script src="js/bootstrap.js"></script>
 		<script src="js/highlight.js"></script>
 		<script src="js/mousetrap.js"></script>
+		<script src="js/filesaver.js"></script>
 		<script src="js/jquery.tablesorter.js"></script>
 		<script src="js/jquery.tablesorter.widgets.js"></script>
 
@@ -266,7 +267,7 @@
 						var sn = s[ name ];
 						var badges = $( '<span class="badges"/>' );
 						if ( sn[ 'sources' ] > 0 ) {
-							var input = $( '<input type="number" class="span4" value="' + evaluations[ uid ][ ex ].score + '" style="margin: 0 4pt 0 0;" onchange="store_evaluation( this )"/>' );
+							var input = $( '<input type="number" step="any" class="span3" value="' + evaluations[ uid ][ ex ].score + '" style="margin: 0 4pt 0 0;" onchange="store_evaluation( this )"/>' );
 							input.data( 'r', uid );
 							input.data( 'c', ex );
 						}
@@ -425,7 +426,7 @@
 						</div>
 						<div class="control-group">
 							<label class="control-label">Score</label>
-							<div class="controls"><input id="score" type="number" class="input-mini" onchange="store_evaluation( this )"></div>
+							<div class="controls"><input id="score" type="number" step="any" class="input-mini" onchange="store_evaluation( this )"></div>
 						</div>
 						<div class="control-group">
 							<label class="control-label">Note</label>
