@@ -37,18 +37,18 @@
 			Mousetrap.bind( 'q', function() { update_uid( -1 ); } );
 			Mousetrap.bind( 'w', function() { update_summary(); } );
 			Mousetrap.bind( 'e', function() { update_uid( +1 ); } );
-			Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badges' ).toggle(); } );
-			Mousetrap.bind( 't', function() { $( '#summary_tab input' ).toggle(); } );
 
 			Mousetrap.bind( 'a', function() { update_exercise( -1 ); } );
-			Mousetrap.bind( 's', function() { $sources_tab.tab( 'show' ); } );
+			Mousetrap.bind( 's', function() { update_exercise(); } );
 			Mousetrap.bind( 'd', function() { update_exercise( +1 ); } );
 
 			Mousetrap.bind( 'z', function() { update_case( -1 ); } );
-			Mousetrap.bind( 'x', function() { $cases_tab.tab( 'show' ); } );
+			Mousetrap.bind( 'x', function() { update_case(); } );
 			Mousetrap.bind( 'c', function() { update_case( +1 ); } );
 
 			Mousetrap.bind( 'h', function() { $( '#shortcuts' ).modal( 'toggle' ); } );
+			Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badges' ).toggle(); } );
+			Mousetrap.bind( 't', function() { $( '#summary_tab input' ).toggle(); } );
 
 			function store_evaluation( elem ) {
 				var rc = $( elem ).data();
