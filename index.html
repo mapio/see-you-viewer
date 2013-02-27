@@ -50,6 +50,14 @@
 			Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badges' ).toggle(); } );
 			Mousetrap.bind( 't', function() { $( '#summary_tab input' ).toggle(); } );
 
+
+			function guid() {
+				function _s4() {
+					return Math.floor( ( 1 + Math.random() ) * 0x10000 ).toString( 16 ).substring( 1 );
+				};
+  				return _s4() + _s4() + '-' + _s4() + '-' + _s4() + '-' + _s4() + '-' + _s4() + _s4() + _s4();
+			}
+
 			function store_evaluation( elem ) {
 				var rc = $( elem ).data();
 				if ( $( elem ).is( 'input' ) ) {
@@ -58,6 +66,7 @@
 					else evaluations[ rc.r ][ rc.c ].score = val;
 				} else
 					evaluations[ rc.r ][ rc.c ].note = $( elem ).val();
+				localStorage[ location.hash ] = JSON.stringify( evaluations );
 			}
 
 			function update_case( delta ) {
@@ -199,6 +208,19 @@
 				});
 				ex_names = Object.keys( ex_names ).sort();
 
+				var stored_evaluations = localStorage[ location.hash ];
+				if ( stored_evaluations != null )
+					evaluations = JSON.parse( stored_evaluations );
+				else {
+					evaluations = [];
+					$.each( results, function( uid, res ) {
+						evaluations[ uid ] = [];
+						$.each( ex_names, function( ex, name ) {
+							evaluations[ uid ][ ex ] = { score: 0, note: '' }
+						} );
+					} );
+				}
+
 				var head = $( 'thead>tr' );
 				$.each( ex_names, function( i, name ) {
 					head.append( $( '<th class="sorter-result"/>' ).text( name ) );
@@ -228,14 +250,7 @@
 						s[ ex.name ] = n;
 					});
 
-					evaluations[ uid ] = [];
-
 					$.each( ex_names, function( ex, name ) {
-
-						evaluations[ uid ][ ex ] = { score: 0, note: '' }
-						var td = $( '<td/>' );
-						var sn = s[ name ];
-
 						function _badge( k, l0, l1 ) {
 							var badge;
 							if ( sn == null ) return null;
@@ -247,6 +262,8 @@
 								progress.append( $( '<div class="bar bar-' + l1 +'" style="width: ' + ( sn[ k ] * 100 / sn.tot ) +'%;"/>' ) );
 							return badge;
 						}
+						var td = $( '<td/>' );
+						var sn = s[ name ];
 						var badges = $( '<span class="badges"/>' );
 						if ( sn[ 'sources' ] > 0 ) {
 							var input = $( '<input type="number" class="span4" value="' + evaluations[ uid ][ ex ].score + '" style="margin: 0 4pt 0 0;" onchange="store_evaluation( this )"/>' );
@@ -292,6 +309,8 @@
 
 
 			$(function() {
+
+				if ( location.hash == '' ) location.hash = 'suv-' + guid();
 
 				$info = $( '#info' );
 				$uid = $( '#uid' );
