@@ -31,4 +31,4 @@ for uid, rest in res.items():
 		if exercise not in res[ uid ][ 'exercises' ]:
 			res[ uid ][ 'exercises' ][ exercise ] = { 'sources': {}, 'cases': [] }
 
-print 'results = {0};'.format( dumps( res ) )
+print dumps( res.values() )

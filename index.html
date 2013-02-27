@@ -20,20 +20,25 @@
 		<script src="js/bootstrap.js"></script>
 		<script src="js/highlight.js"></script>
 		<script src="js/mousetrap.js"></script>
+		<script src="js/sha1.js"></script>
 		<script src="js/filesaver.js"></script>
 		<script src="js/jquery.tablesorter.js"></script>
 		<script src="js/jquery.tablesorter.widgets.js"></script>
-
-		<script>var results = {};</script>
-		<script src="results.js"></script>
 		<script>
+			var global_uid = location.hash;
+			if ( global_uid == '' ) location.hash = 'suv-' + guid();
+
+			var results = [],
+				infos = [],
+				evaluations = []
+				exercise_names = []; /* filled by parse_results */
 
 			var $info, $uid, $exercise, $case, $ip, $identification,
-				$evaluation, $score, $note, $sources, $cases,
+				$evaluation, $score, $note, $sources, $cases, $summary,
 				$sources_tab, $cases_tab, $summary_tab;
 
-			var evaluations = [], infos = []; /* will be filled by setup */
 			var current = { uid: 0, exercise: 0 };
+
 
 			Mousetrap.bind( 'q', function() { update_uid( -1 ); } );
 			Mousetrap.bind( 'w', function() { update_summary(); } );
@@ -67,11 +72,13 @@
 					else evaluations[ rc.r ][ rc.c ].score = val;
 				} else
 					evaluations[ rc.r ][ rc.c ].note = $( elem ).val();
-				localStorage[ location.hash ] = JSON.stringify( evaluations );
+				localStorage[ global_uid + '_evaluations' ] = JSON.stringify( evaluations );
 			}
 
 			function update_case( delta ) {
-				var cases = results[ current.uid ].exercises[ current.exercise ].cases;
+				var cur = results[ current.uid ];
+				if ( cur == null ) return;
+				var cases = cur.exercises[ current.exercise ].cases;
 				if ( cases.length == 0 ) return;
 				if ( typeof delta !== 'undefined' ) {
 					var t = current.case + delta;
@@ -105,7 +112,9 @@
 			}
 
 			function update_exercise( delta ) {
-				var exercises = results[ current.uid ].exercises;
+				var cur = results[ current.uid ];
+				if ( cur == null ) return;
+				var exercises = cur.exercises;
 				if ( typeof delta !== 'undefined' ) {
 					var t = current.exercise + delta;
 					if ( 0 <= t && t < exercises.length ) current.exercise = t;
@@ -146,9 +155,13 @@
 					else return;
 				}
 				var cur = results[ current.uid ];
+				if ( cur == null ) return;
 				$uid.text( cur.uid );
 				$info.val( cur.info );
 				$ip.text( cur.ip );
+				var trs = $( 'tbody tr' );
+				trs.removeClass( 'info' );
+				$( trs[ current.uid ] ).addClass( 'info' );
 				update_exercise();
 			}
 
@@ -160,8 +173,7 @@
 				$summary_tab.tab( 'show' );
 			}
 
-			function fix_results() {
-
+			function from_json( data ) {
 				function _cmp( field ) {
 					function _c( a, b ) {
 						return a[ field ] < b[ field ] ? -1 : ( a[ field ] > b[ field ] ? 1 : 0 );
@@ -176,14 +188,13 @@
 					});
 					return array;
 				}
-
-				results = _edit( results, function( uid, res ) {
+				var results = _edit( data, function( idx, res ) {
 					res.uid = res.signature[ 0 ];
 					res.info = res.signature[ 1 ];
-					infos.push( res.info );
 					res.ip = res.signature[ 2 ];
 					var exercises = _edit( res.exercises, function( name, exercise ) {
 						exercise.name = name;
+						exercise_names[ name ] = true;
 						var cases = exercise.cases;
 						if ( cases.length == 0 ) return;
 						var cm = cases.shift()
@@ -194,45 +205,60 @@
 					res.exercises = exercises;
 				});
 				results.sort( _cmp( 'uid' ) );
-
+				console.log( results );
+				localStorage.clear();
+				localStorage[ global_uid + '_results' ] = JSON.stringify( results );
+				/*
+				localStorage.removeItem( global_uid + '_evaluations' );
+				*/
+				fill_depending();
 			}
 
-			function setup() {
+			function fill_depending() {
 
-				fix_results();
+				var json_results = localStorage[ global_uid + '_results' ];
+				if ( typeof json_results !== 'undefined' )
+					results = JSON.parse( json_results );
+				else
+					results = [];
 
-				var ex_names = {};
-				$.each( results, function( i, res ) {
-					$.each( res.exercises, function( i, ex ) {
-						ex_names[ ex.name ] = true;
+				infos.splice( 0, infos.length ); /* mutate the object since it is bound to typeahead */
+				evaluations = [];
+				exercise_names = {};
+				$.each( results, function( ri, res ) {
+					infos.push( res.info );
+					evaluations[ ri ] = [];
+					$.each( res.exercises, function( ei, ex ) {
+						exercise_names[ ex.name ] = true;
+						evaluations[ ri ].push( { score: 0, note: '' } );
 					});
 				});
-				ex_names = Object.keys( ex_names ).sort();
+				exercise_names = Object.keys( exercise_names ).sort();
 
-				var stored_evaluations = localStorage[ location.hash ];
-				if ( stored_evaluations != null )
-					evaluations = JSON.parse( stored_evaluations );
-				else {
-					evaluations = [];
-					$.each( results, function( uid, res ) {
-						evaluations[ uid ] = [];
-						$.each( ex_names, function( ex, name ) {
-							evaluations[ uid ][ ex ] = { score: 0, note: '' }
-						} );
-					} );
-				}
+				var json_evaluations = localStorage[ global_uid + '_evaluations' ];
+				if ( typeof json_evaluations !== 'undefined' )
+					evaluations = JSON.parse( json_evaluations );
 
-				var head = $( 'thead>tr' );
-				$.each( ex_names, function( i, name ) {
-					head.append( $( '<th class="sorter-result"/>' ).text( name ) );
+				setup_summary();
+				current = { uid: 0, exercise: 0 };
+				update_uid();
+				update_summary();
+			}
+
+			function setup_summary() {
+				var thead = $( '<thead/>' );
+				var tr = $( '<tr/>' );
+				tr.append( $( '<th>UID</th><th>Info</th>' ) );
+				$.each( exercise_names, function( i, name ) {
+					tr.append( $( '<th class="sorter-result"/>' ).text( name ) );
 				});
+				thead.append( tr );
 
-				var body = $( 'tbody' );
+				var tbody = $( '<tbody/>' );
 				$.each( results, function( uid, res ) {
 					var tr = $( '<tr/> ');
-					tr.append( $( '<th/>').text( res.uid ) );
+					tr.append( $( '<td/>').text( res.uid ) );
 					tr.append( $( '<td/>').text( res.info ) );
-
 					var s = {};
 					$.each( res.exercises, function( i, ex ) {
 						var n = {
@@ -250,8 +276,7 @@
 						n.tot = n.ok + n.diff + n.execution;
 						s[ ex.name ] = n;
 					});
-
-					$.each( ex_names, function( ex, name ) {
+					$.each( exercise_names, function( ex, name ) {
 						function _badge( k, l0, l1 ) {
 							var badge;
 							if ( sn == null ) return null;
@@ -287,31 +312,22 @@
 						td.append( progress );
 						tr.append( td );
 					});
-
-					body.append( tr );
+					tbody.append( tr );
 				});
-
-				$.tablesorter.addParser({
-					id: 'result',
-					is: function( s ) { return false; },
-					format: function( s, table, cell, cellIndex ) {
-						return $( cell ).find( '[class*="badge-success"]' ).text();
-					},
-					type: 'numeric'
-	    		});
-    			$( 'table' ).tablesorter({
+				var table = $( '<table class="table table-bordered table-striped"/>' );
+				table.append( thead );
+				table.append( tbody );
+				table.tablesorter({
     				theme: 'bootstrap',
 					headerTemplate : '{content} {icon}',
 					widgets : [ "uitheme" ],
     			});
+				$summary.html( table );
 				$( 'div.progress' ).toggle();
-
 			}
 
 
 			$(function() {
-
-				if ( location.hash == '' ) location.hash = 'suv-' + guid();
 
 				$info = $( '#info' );
 				$uid = $( '#uid' );
@@ -325,6 +341,7 @@
 				$note = $( '#note' );
 				$sources = $( '#sources' );
 				$cases = $( '#cases' );
+				$summary = $( '#summary' );
 
 				$sources_tab = $( '#sections_nav a[href="#sources_tab"]' );
 				$cases_tab = $( '#sections_nav a[href="#cases_tab"]' );
@@ -346,9 +363,26 @@
 					}
     			});
 
-				setup();
-				update_uid();
-				update_summary();
+				$.tablesorter.addParser({
+					id: 'result',
+					is: function( s ) { return false; },
+					format: function( s, table, cell, cellIndex ) {
+						return $( cell ).find( '[class*="badge-success"]' ).text();
+					},
+					type: 'numeric'
+	    		});
+
+				$( '#result_file' ).on( 'change', function( e ) {
+					var file = e.target.files[ 0 ];
+					var reader = new FileReader();
+					reader.onload = function( e ) {
+						from_json( JSON.parse( e.target.result ) );
+					};
+	      			reader.readAsText( file );
+					$( 'div.fileupload' ).fileupload( 'clear' );
+				});
+
+				fill_depending();
 
 			});
 
@@ -395,27 +429,32 @@
 		<label>IP</label>
 		<span class="uneditable-input" id="ip"></span>
 		</fieldset></form>
+
 		<hr/>
+
 		<ul id="sections_nav" class="nav nav-pills nav-stacked">
 			<li class="active"><a href="#summary_tab" data-toggle="tab">Summary</a></li>
 			<li><a href="#sources_tab" data-toggle="tab">Sources</a></li>
 			<li><a href="#cases_tab" data-toggle="tab">Cases</a></li>
 		</ul>
 		<div class="alert alert-info">Press <kbd>h</kbd> for a list of shortcuts.</div>
+
+		<hr/>
+
+		<div class="fileupload fileupload-new" data-provides="fileupload">
+			<span class="btn btn-file"><span class="fileupload-new">Load results</span><input type="file" id="result_file" /></span>
+		</div>
+
 	</div><!-- sidebar -->
 
 	<div class="span10">
 
 		<div id="sections_content" class="tab-content">
+
 			<div class="tab-pane" id="summary_tab">
-				<table class="table table-bordered table-striped">
-					<thead>
-						<tr><th>UID<th>Info
-					</thead>
-					<tbody>
-					</tbody>
-				</table>
+					<div id="summary"></div>
 			</div>
+
 			<div class="tab-pane" id="sources_tab">
 				<div class="well" id="evaluation">
 				<form class="form-horizontal"><fieldset>
@@ -435,9 +474,11 @@
 				</fieldset></form></div>
 				<div id="sources"></div>
 			</div>
+
 			<div class="tab-pane" id="cases_tab">
 				<div id="cases"></div>
 			</div>
+
 		</div>
 
 	</div><!-- body -->

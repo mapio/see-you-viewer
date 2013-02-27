@@ -19,7 +19,7 @@ The results format
 This viewer shows results sotored in a JSON file having a format described by
 the following "BNF" grammar:
 
-	RESULTS :=  { ( <UID>: { 'exercises': <EXERCISES>, 'signature': <SIGNAGURE> } )+ }
+	RESULTS :=  [ ( { 'exercises': <EXERCISES>, 'signature': <SIGNAGURE> } )+ ]
 
 	EXERCISES := { ( <EXERCISE_NAME>: { 'sources': <SOURCES>, 'cases': <CASES> )+ }
 
@@ -41,5 +41,5 @@ the following "BNF" grammar:
 	TYPE := 'compile' | 'execution' | 'diff' | 'ok'
 
 and all non-terminals not detailed here are understood to be unicode strings;
-moreover, all the EXERCISES must share the same set of EXERCISE_NAME keys (but
-the same isn't required for CASES).
+UID must be unique and, moreover, all the EXERCISES must share the same set of
+EXERCISE_NAME keys (but the same isn't required for SOURCES, or CASES).
