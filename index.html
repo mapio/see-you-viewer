@@ -13,12 +13,7 @@
  			#printinfo { display: none; }
  			@media print {
   				#summary_tab, #cases_tab, #navigation, #shortcuts { display: none; }
-  				#printinfo {
- 					display: block;
-  					padding: 1em;
-  					border: 1pt solid black;
-  					margin-bottom: 1em;
-  				}
+  				#printinfo { display: block; }
 			}
 		</style>
 		<script src="js/jquery.js"></script>
@@ -32,16 +27,18 @@
 		<script src="results.js"></script>
 		<script>
 
-			var $info, $uid, $exercise, $case, $ip, $signature,
-				$sources, $cases,
+			var $info, $uid, $exercise, $case, $ip, $identification,
+				$evaluation, $score, $note, $sources, $cases,
 				$sources_tab, $cases_tab, $summary_tab;
 
+			var evaluations = [];
 			var current = {}, infos = [];
 
 			Mousetrap.bind( 'q', function() { update_uid( -1 ); } );
-			Mousetrap.bind( 'w', function() { $summary_tab.tab( 'show' ); } );
-			Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badges' ).toggle(); } );
+			Mousetrap.bind( 'w', function() { update_summary(); } );
 			Mousetrap.bind( 'e', function() { update_uid( +1 ); } );
+			Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badges' ).toggle(); } );
+			Mousetrap.bind( 't', function() { $( '#summary_tab input' ).toggle(); } );
 
 			Mousetrap.bind( 'a', function() { update_exercise( -1 ); } );
 			Mousetrap.bind( 's', function() { $sources_tab.tab( 'show' ); } );
@@ -53,6 +50,15 @@
 
 			Mousetrap.bind( 'h', function() { $( '#shortcuts' ).modal( 'toggle' ); } );
 
+			function store_evaluation( elem ) {
+				var rc = $( elem ).data();
+				if ( $( elem ).is( 'input' ) ) {
+					var val = elem.valueAsNumber;
+					if ( isNaN( val ) ) $( elem ).val( evaluations[ rc.r ][ rc.c ].score );
+					else evaluations[ rc.r ][ rc.c ].score = val;
+				} else
+					evaluations[ rc.r ][ rc.c ].note = $( elem ).val();
+			}
 
 			function update_case( delta ) {
 				var cases = results[ current.uid ].exercises[ current.exercise ].cases;
@@ -96,6 +102,7 @@
 					else return;
 				}
 				var cur = exercises[ current.exercise ];
+				$identification.text( results[ current.uid ].signature.toString() + ", " + cur.name );
 				$exercise.text( cur.name );
 				var res = [];
 				$.each( cur.sources, function( p ) {
@@ -106,10 +113,17 @@
 					));
 				});
 				if ( res.length > 0 ) {
+					$score.val( evaluations[ current.uid ][ current.exercise ].score );
+					$score.data( { 'r': current.uid, 'c': current.exercise  } );
+					$note.val( evaluations[ current.uid ][ current.exercise ].note );
+					$note.data( { 'r': current.uid, 'c': current.exercise  } );
+					$evaluation.show();
 					$sources.html( '' );
 					$.each( res, function( i, s ) { $sources.append( s ) } );
-				} else
+				} else {
+					$evaluation.hide();
 					$sources.html( '<div class="alert alert-error">no source file found</div>' );
+				}
 				current.case = 0;
 				update_case();
 				$sources_tab.tab( 'show' );
@@ -125,9 +139,16 @@
 				$uid.text( cur.uid );
 				$info.val( cur.info );
 				$ip.text( cur.ip );
-				$signature.text( cur.signature.toString() );
 				current.exercise = current.exercise || 0;
 				update_exercise();
+			}
+
+			function update_summary() {
+				$( '#summary_tab input' ).each( function( i, e ) {
+					var rc = $( e ).data();
+					$( e ).val( evaluations[ rc.r ][ rc.c ].score );
+				});
+				$summary_tab.tab( 'show' );
 			}
 
 			function compute_summary() {
@@ -169,7 +190,14 @@
 						s[ ex.name ] = n;
 					});
 
+					evaluations[ uid ] = [];
+
 					$.each( ex_names, function( ex, name ) {
+
+						evaluations[ uid ][ ex ] = { score: 0, note: '' }
+						var td = $( '<td/>' );
+						var sn = s[ name ];
+
 						function _badge( k, l0, l1 ) {
 							var badge;
 							if ( sn == null ) return null;
@@ -181,10 +209,14 @@
 								progress.append( $( '<div class="bar bar-' + l1 +'" style="width: ' + ( sn[ k ] * 100 / sn.tot ) +'%;"/>' ) );
 							return badge;
 						}
-						var td = $( '<td/>' );
 						var badges = $( '<span class="badges"/>' );
+						if ( sn[ 'sources' ] > 0 ) {
+							var input = $( '<input type="number" class="span4" value="' + evaluations[ uid ][ ex ].score + '" style="margin: 0 4pt 0 0;" onchange="store_evaluation( this )"/>' );
+							input.data( 'r', uid );
+							input.data( 'c', ex );
+						}
+						badges.append( input );
 						var progress = $( '<div class="progress"/>' );
-						var sn = s[ name ];
 						var b = _badge( 'sources', '' );
 						if ( b != null ) b.click( (function( r, c ) { return function() {
 							current.uid = uid, current.exercise = ex;
@@ -207,7 +239,7 @@
 					id: 'result',
 					is: function( s ) { return false; },
 					format: function( s, table, cell, cellIndex ) {
-						return $( cell ).children( '[class*="badge-success"]' ).text();
+						return $( cell ).find( '[class*="badge-success"]' ).text();
 					},
 					type: 'numeric'
 	    		});
@@ -263,8 +295,11 @@
 				$exercise = $( '#exercise' );
 				$case = $( '#case' );
 				$ip = $( '#ip' );
-				$signature = $( '#signature' );
+				$identification = $( '#identification' );
 
+				$evaluation = $( '#evaluation' );
+				$score = $( '#score' );
+				$note = $( '#note' );
 				$sources = $( '#sources' );
 				$cases = $( '#cases' );
 
@@ -277,7 +312,7 @@
 
 				current.uid = 0;
 				update_uid();
-    			$summary_tab.tab( 'show' );
+    			update_summary();
 
     			$info.typeahead({ source: infos });
     			$info.on( "focus", function( e ) { $info.val( '' ); } );
@@ -310,6 +345,7 @@
 			<ul>
 			<li><kbd>h</kbd>: toggle this help,</li>
 			<li><kbd>r</kbd>: toggle number/bars in summary,</li>
+			<li><kbd>t</kbd>: toggle score inputs in summary,</li>
 			<li><kbd>q</kbd>,
 				<kbd>w</kbd>,
 				<kbd>e</kbd>: previous <em>uid</em>, summary, next <em>uid</em>,</li>
@@ -361,9 +397,22 @@
 				</table>
 			</div>
 			<div class="tab-pane" id="sources_tab">
-				<div id="printinfo">
-					Signature: <span id="signature"></span>.
-				</div>
+				<div class="well" id="evaluation">
+				<form class="form-horizontal"><fieldset>
+					<legend>Evaluation</legend>
+						<div class="control-group" id="printinfo">
+							<label class="control-label">UID, Info, IP, Exercise</label>
+							<div class="controls"><span id="identification" class="uneditable-input input-xxlarge"></span></div>
+						</div>
+						<div class="control-group">
+							<label class="control-label">Score</label>
+							<div class="controls"><input id="score" type="number" class="input-mini" onchange="store_evaluation( this )"></div>
+						</div>
+						<div class="control-group">
+							<label class="control-label">Note</label>
+							<div class="controls"><textarea id="note" class="input-xxlarge" onchange="store_evaluation( this )"></textarea></div>
+						</div>
+				</fieldset></form></div>
 				<div id="sources"></div>
 			</div>
 			<div class="tab-pane" id="cases_tab">
