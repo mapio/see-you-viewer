@@ -1,34 +1,96 @@
 #!/usr/bin/env python
 
-from collections import defaultdict
 from json import dumps
 from re import compile as recompile
 from os import walk
-from os.path import join
+from os.path import join, normpath
 from sys import argv
 
-base_dir = argv[ 1 ]
-exercise_names = frozenset( argv[ 2 ].split( ',' ) )
+class FileSystemConverter( object ):
 
-SOURCES_PATTERN = recompile( join( base_dir, r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)' ) )
+	def __init__( self, basedir = '.', **patterns ):
+		_adjust = lambda _: recompile( join( self.basedir, patterns[ _ ] ) ) if _ in patterns else None
+		self.basedir = normpath( basedir )
+		self.signature_pattern = _adjust( 'signature' )
+		self.source_pattern = _adjust( 'source' )
+		self.case_pattern = _adjust( 'case' )
+		self.exercise_names = set()
+		self.results = {}
 
-res = defaultdict( lambda : defaultdict( lambda : defaultdict( lambda : defaultdict( lambda : defaultdict( lambda : dict ) ) ) ) )
-for root, dirs, files in walk( base_dir ):
-	for name in files:
-		path = join( root, name )
-		match = SOURCES_PATTERN.match( path )
-		if match:
-			s = match.groupdict()
-			if s[ 'exercise' ] not in exercise_names: continue
-			with open( path, 'r' ) as f: exercise_text = f.read()
-			res[ s[ 'uid' ] ][ 'exercises' ][ s[ 'exercise' ] ] = {
-				'sources': { s[ 'source']: exercise_text }, 'cases': []
+	def ensure_result( self, uid, exercise = None ):
+		if not uid in self.results:
+			self.results[ uid ] = {
+				'signature': [ uid, uid, None ],
+				'exercises': {}
+			}
+		if exercise and not exercise in self.results[ uid ][ 'exercises' ]:
+			self.results[ uid ][ 'exercises' ][ exercise ] = {
+				'sources': {},
+				'cases': []
 			}
 
-for uid, rest in res.items():
-	res[ uid ][ 'signature' ] = [ uid, uid, '' ]
-	for exercise in exercise_names:
-		if exercise not in res[ uid ][ 'exercises' ]:
-			res[ uid ][ 'exercises' ][ exercise ] = { 'sources': {}, 'cases': [] }
+	def signature( self, path ):
+		if not self.signature_pattern: return None
+		match = self.signature_pattern.match( path )
+		if match:
+			with open( path, 'r' ) as f: f.read().strip().split()
+			return match.group( 'uid' ), signature
+		return None
 
-print dumps( res.values() )
+	def exercise( self, path ):
+		if not self.source_pattern: return
+		match = self.source_pattern.match( path )
+		if match:
+			self.exercise_names.add( match.group( 'exercise' ) )
+			with open( path, 'r' ) as f: content = f.read()
+			return match.group( 'uid' ), match.group( 'exercise' ), match.group( 'source' ), content
+		return None
+
+	def case( self, path ):
+		if not self.case_pattern: return None
+		match = self.case_pattern.match( path )
+		if match:
+			case = {
+				'name': '',
+				'stdout': '',
+				'stderr': '',
+				'failure': '',
+				'error': '',
+				'type': ''
+			}
+			return match.group( 'uid' ), match.group( 'exercise' ), match.group( 'name' ), case
+		return None
+
+	def scan( self ):
+		for root, dirs, files in walk( self.basedir ):
+			for name in files:
+				path = join( root, name )
+				signature = self.signature( path )
+				if signature:
+					uid, signature = signature
+					self.ensure_result( self, uid )
+					self.results[ uid ][ 'signature' ] = signature
+					continue
+				exercise = self.exercise( path )
+				if exercise:
+					uid, exercise, source, content = exercise
+					self.ensure_result( uid, exercise )
+					self.results[ uid ][ 'exercises' ][ exercise ][ 'sources' ][ source ] = content
+					continue
+				case = self.case( path )
+				if case:
+					uid, exercise, name, case = case
+					self.ensure_result( uid, exercise )
+					self.results[ uid ][ 'exercises' ][ exercise ][ 'cases' ][ name ] = case
+
+	def tojson( self ):
+		for uid, res in self.results.items():
+			for name in self.exercise_names:
+				if name not in self.results[ uid ][ 'exercises' ]:
+					self.results[ uid ][ 'exercises' ][ name ] = { 'sources': {}, 'cases': [] }
+		return dumps( self.results.values() )
+
+if __name__ == '__main__':
+	boldi = FileSystemConverter( argv[ 1 ], source = r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)' )
+	boldi.scan()
+	print boldi.tojson()
