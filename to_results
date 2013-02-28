@@ -20,15 +20,22 @@ class FileSystemConverter( object ):
 		self.source_pattern = _adjust( 'source' )
 		self.cases_pattern = _adjust( 'cases' )
 
+	def signature( self, path ):
+		with open( path, 'rb' ) as f: signature = unicode( f.read(), errors = 'replace' ).strip().split( '\t' )
+		return signature
+
 	def _signature( self, path ):
 		if not self.signature_pattern: return None
 		match = self.signature_pattern.match( path )
 		if match:
 			match = match.groupdict()
 			LOGGER.info( 'match {0}'.format( match ) )
-			with open( path, 'rb' ) as f: signature = unicode( f.read(), errors = 'replace' ).strip().split( '\t' )
-			return match[ 'uid' ], signature
+			return match[ 'uid' ], self.signature( path )
 		return None
+
+	def source( self, path ):
+		with open( path, 'rb' ) as f: content = unicode( f.read(), errors = 'replace' )
+		return content
 
 	def _source( self, path ):
 		if not self.source_pattern: return
@@ -36,17 +43,11 @@ class FileSystemConverter( object ):
 		if match:
 			match = match.groupdict()
 			LOGGER.info( ' match {0}'.format( match ) )
-			with open( path, 'rb' ) as f: content = unicode( f.read(), errors = 'replace' )
-			return match[ 'uid' ], match[ 'exercise' ], match[ 'source' ], content
+			return match[ 'uid' ], match[ 'exercise' ], match[ 'source' ], self.source( path )
 		return None
 
-	def _cases( self, path ):
-		if not self.cases_pattern: return None
-		match = self.cases_pattern.match( path )
-		if match:
-			match = match.groupdict()
-			LOGGER.info( 'match {0}'.format( match ) )
-			cases = [{
+	def cases( self, path ):
+		return = [{
 				'name': '',
 				'stdout': '',
 				'stderr': '',
@@ -54,7 +55,14 @@ class FileSystemConverter( object ):
 				'error': '',
 				'type': ''
 			}]
-			return match[ 'uid' ], match[ 'exercise' ], cases
+
+	def _cases( self, path ):
+		if not self.cases_pattern: return None
+		match = self.cases_pattern.match( path )
+		if match:
+			match = match.groupdict()
+			LOGGER.info( 'match {0}'.format( match ) )
+			return match[ 'uid' ], match[ 'exercise' ], self.cases( path )
 		return None
 
 	def scan( self ):
@@ -129,6 +137,9 @@ class FileSystemConverter( object ):
 
 	def tojson( self ):
 		return dumps( self.results )
+
+class SeeYouConverter( FileSystemConverter ):
+	pass
 
 if __name__ == '__main__':
 	#FileSystemConverter( argv[ 1 ], source = r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)' )
