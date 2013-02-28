@@ -25,10 +25,8 @@
 		<script src="js/jquery.tablesorter.js"></script>
 		<script src="js/jquery.tablesorter.widgets.js"></script>
 		<script>
-			var global_uid = location.hash;
-			if ( global_uid == '' ) location.hash = 'suv-' + guid();
-
 			var results = [],
+				results_signaure = null,
 				infos = [],
 				evaluations = []
 				exercise_names = []; /* filled by parse_results */
@@ -57,13 +55,6 @@
 			Mousetrap.bind( 't', function() { $( '#summary_tab input' ).toggle(); } );
 
 
-			function guid() {
-				function _s4() {
-					return Math.floor( ( 1 + Math.random() ) * 0x10000 ).toString( 16 ).substring( 1 );
-				};
-  				return _s4() + _s4() + '-' + _s4() + '-' + _s4() + '-' + _s4() + '-' + _s4() + _s4() + _s4();
-			}
-
 			function store_evaluation( elem ) {
 				var rc = $( elem ).data();
 				if ( $( elem ).is( 'input' ) ) {
@@ -72,7 +63,7 @@
 					else evaluations[ rc.r ][ rc.c ].score = val;
 				} else
 					evaluations[ rc.r ][ rc.c ].note = $( elem ).val();
-				localStorage[ global_uid + '_evaluations' ] = JSON.stringify( evaluations );
+				localStorage[ results_signaure ] = JSON.stringify( evaluations );
 			}
 
 			function update_case( delta ) {
@@ -188,7 +179,11 @@
 					});
 					return array;
 				}
-				var results = _edit( data, function( idx, res ) {
+				var sha = new jsSHA( data, 'TEXT' );
+				results_signaure =  sha.getHash( 'SHA-1', 'HEX' );
+				$( '#result_sha' ).text( results_signaure );
+				data = JSON.parse( data );
+				results = _edit( data, function( idx, res ) {
 					res.uid = res.signature[ 0 ];
 					res.info = res.signature[ 1 ];
 					res.ip = res.signature[ 2 ];
@@ -205,22 +200,6 @@
 					res.exercises = exercises;
 				});
 				results.sort( _cmp( 'uid' ) );
-				console.log( results );
-				localStorage.clear();
-				localStorage[ global_uid + '_results' ] = JSON.stringify( results );
-				/*
-				localStorage.removeItem( global_uid + '_evaluations' );
-				*/
-				fill_depending();
-			}
-
-			function fill_depending() {
-
-				var json_results = localStorage[ global_uid + '_results' ];
-				if ( typeof json_results !== 'undefined' )
-					results = JSON.parse( json_results );
-				else
-					results = [];
 
 				infos.splice( 0, infos.length ); /* mutate the object since it is bound to typeahead */
 				evaluations = [];
@@ -235,7 +214,7 @@
 				});
 				exercise_names = Object.keys( exercise_names ).sort();
 
-				var json_evaluations = localStorage[ global_uid + '_evaluations' ];
+				var json_evaluations = localStorage[ results_signaure ];
 				if ( typeof json_evaluations !== 'undefined' )
 					evaluations = JSON.parse( json_evaluations );
 
@@ -376,13 +355,11 @@
 					var file = e.target.files[ 0 ];
 					var reader = new FileReader();
 					reader.onload = function( e ) {
-						from_json( JSON.parse( e.target.result ) );
+						from_json( e.target.result );
 					};
 	      			reader.readAsText( file );
 					$( 'div.fileupload' ).fileupload( 'clear' );
 				});
-
-				fill_depending();
 
 			});
 
@@ -444,6 +421,8 @@
 		<div class="fileupload fileupload-new" data-provides="fileupload">
 			<span class="btn btn-file"><span class="fileupload-new">Load results</span><input type="file" id="result_file" /></span>
 		</div>
+		<span class="uneditable-input" id="result_sha"></span>
+		<button class="btn" type="button">Download evaluations</button>
 
 	</div><!-- sidebar -->
 
