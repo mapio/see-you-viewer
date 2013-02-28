@@ -16,18 +16,28 @@ It is a local web application based on the following awesome projects:
 The results format
 ------------------
 
-This viewer shows results sotored in a JSON file having a format described by
+This viewer shows results stored in a JSON file having a format described by
 the following "BNF" grammar:
 
-	RESULTS :=  [ ( { 'exercises': <EXERCISES>, 'signature': <SIGNAGURE> } )+ ]
+	RESULTS :=  [ ( RESULT )+ ]
 
-	EXERCISES := { ( <EXERCISE_NAME>: { 'sources': <SOURCES>, 'cases': <CASES> )+ }
+	RESULT := { # the first three fields are the "signature" collected by "Tristo mietitore"
+		'uid': <UID>,
+		'info': <INFO>,
+		'ip': <EXTRA>,
+		'exercises': [ ( <EXERCISE> )+ ]
+	}
 
-	SIGNATURE := [ <UID>, <INFO>, <IP> ]  # this is what "Tristo mietitore" puts in SIGNATURE.tsv
+	EXERCISE := {
+		'name', <EXERCISE_NAME>,
+		'sources': [ ( <SOURCE> )+ ],
+		'cases': [ ( <CASE> )* ]
+	}
 
-	SOURCES := { ( <FILE_NAME>: CONTENT )* }
-
-	CASES := { ( <CASE_NUM>: <CASE> )* }
+	SOURCE := {
+		'name': <SOURCE_NAME>,
+		'content': <CONTENT>
+	}
 
 	CASE := { # the format of this depends on "See you" xUnit approach (see testrunner.py)
 				'name': <CASE_NAME>,
@@ -41,5 +51,6 @@ the following "BNF" grammar:
 	TYPE := 'compile' | 'execution' | 'diff' | 'ok'
 
 and all non-terminals not detailed here are understood to be unicode strings;
-UID must be unique and, moreover, all the EXERCISES must share the same set of
-EXERCISE_NAME keys (but the same isn't required for SOURCES, or CASES).
+UID must be unique and, moreover, all the RESULT exercises must share the same
+set of EXERCISE_NAME keys (but the same isn't required for SOURCE, or CASE
+names).
