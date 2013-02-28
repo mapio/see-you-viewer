@@ -4,7 +4,7 @@ from json import dumps
 from re import compile as recompile
 from os import walk
 from os.path import join, normpath
-from sys import argv
+from sys import argv, stderr
 
 class FileSystemConverter( object ):
 
@@ -33,7 +33,7 @@ class FileSystemConverter( object ):
 		if not self.signature_pattern: return None
 		match = self.signature_pattern.match( path )
 		if match:
-			with open( path, 'r' ) as f: f.read().strip().split()
+			with open( path, 'rb' ) as f: signature = unicode( f.read(), errors = 'replace' ).strip().split( '\t' )
 			return match.group( 'uid' ), signature
 		return None
 
@@ -42,7 +42,7 @@ class FileSystemConverter( object ):
 		match = self.source_pattern.match( path )
 		if match:
 			self.exercise_names.add( match.group( 'exercise' ) )
-			with open( path, 'r' ) as f: content = f.read()
+			with open( path, 'rb' ) as f: content = unicode( f.read(), errors = 'replace' )
 			return match.group( 'uid' ), match.group( 'exercise' ), match.group( 'source' ), content
 		return None
 
@@ -62,13 +62,14 @@ class FileSystemConverter( object ):
 		return None
 
 	def scan( self ):
-		for root, dirs, files in walk( self.basedir ):
+		for root, dirs, files in walk( self.basedir, followlinks = True ):
 			for name in files:
 				path = join( root, name )
+				print >>stderr, 'Processing {0}'.format( path )
 				signature = self.signature( path )
 				if signature:
 					uid, signature = signature
-					self.ensure_result( self, uid )
+					self.ensure_result( uid )
 					self.results[ uid ][ 'signature' ] = signature
 					continue
 				exercise = self.exercise( path )
@@ -91,6 +92,10 @@ class FileSystemConverter( object ):
 		return dumps( self.results.values() )
 
 if __name__ == '__main__':
-	boldi = FileSystemConverter( argv[ 1 ], source = r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)' )
-	boldi.scan()
-	print boldi.tojson()
+	#FileSystemConverter( argv[ 1 ], source = r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)' )
+	converter = FileSystemConverter( argv[ 1 ],
+		source = r'(?P<uid>.*)/latest/(?P<exercise>.*)/(?P<source>.*\.[ch])',
+		signature = r'(?P<uid>.*)/SIGNATURE\.tsv'
+	)
+	converter.scan()
+	print converter.tojson()
