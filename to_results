@@ -2,6 +2,7 @@
 
 from json import dumps
 from logging import basicConfig, getLogger, INFO
+from xml.dom import minidom
 from re import compile as recompile
 from operator import itemgetter
 from os import walk
@@ -20,9 +21,8 @@ class FileSystemConverter( object ):
 		self.source_pattern = _adjust( 'source' )
 		self.cases_pattern = _adjust( 'cases' )
 
-	def signature( self, path ):
-		with open( path, 'rb' ) as f: signature = unicode( f.read(), errors = 'replace' ).strip().split( '\t' )
-		return signature
+	def signature( self, path, match ):
+		return match[ 'uid' ], match[ 'uid' ], ''
 
 	def _signature( self, path ):
 		if not self.signature_pattern: return None
@@ -30,10 +30,10 @@ class FileSystemConverter( object ):
 		if match:
 			match = match.groupdict()
 			LOGGER.info( 'match {0}'.format( match ) )
-			return match[ 'uid' ], self.signature( path )
+			return match[ 'uid' ], self.signature( path, match )
 		return None
 
-	def source( self, path ):
+	def source( self, path, match ):
 		with open( path, 'rb' ) as f: content = unicode( f.read(), errors = 'replace' )
 		return content
 
@@ -43,18 +43,11 @@ class FileSystemConverter( object ):
 		if match:
 			match = match.groupdict()
 			LOGGER.info( ' match {0}'.format( match ) )
-			return match[ 'uid' ], match[ 'exercise' ], match[ 'source' ], self.source( path )
+			return match[ 'uid' ], match[ 'exercise' ], match[ 'source' ], self.source( path, match )
 		return None
 
-	def cases( self, path ):
-		return = [{
-				'name': '',
-				'stdout': '',
-				'stderr': '',
-				'failure': '',
-				'error': '',
-				'type': ''
-			}]
+	def cases( self, path, match ):
+		return []
 
 	def _cases( self, path ):
 		if not self.cases_pattern: return None
@@ -62,7 +55,7 @@ class FileSystemConverter( object ):
 		if match:
 			match = match.groupdict()
 			LOGGER.info( 'match {0}'.format( match ) )
-			return match[ 'uid' ], match[ 'exercise' ], self.cases( path )
+			return match[ 'uid' ], match[ 'exercise' ], self.cases( path, match )
 		return None
 
 	def scan( self ):
@@ -89,8 +82,8 @@ class FileSystemConverter( object ):
 					uid, signature = signature
 					_ensure_result( uid )
 					( results[ uid ][ 'uid' ],
-					   results[ uid ][ 'info' ],
-					   results[ uid ][ 'ip' ] ) = signature
+					  results[ uid ][ 'info' ],
+					  results[ uid ][ 'ip' ] ) = signature
 					continue
 				source = self._source( path )
 				if source:
@@ -124,6 +117,52 @@ class FileSystemConverter( object ):
 		return self
 
 	def sort( self ):
+		return self
+
+	def tojson( self ):
+		return dumps( self.results )
+
+class SeeYouConverter( FileSystemConverter ):
+
+	def __init__( self, basedir ):
+		super( SeeYouConverter, self ).__init__( basedir,
+			source = r'(?P<uid>.*)/latest/(?P<exercise>.*)/(?P<source>.*\.[ch])$',
+			signature = r'(?P<uid>.*)/SIGNATURE\.tsv',
+			cases = r'(?P<uid>.*)/latest/TEST-(?P=uid)\.(?P<exercise>.*)\.xml$',
+		)
+
+	def signature( self, path, match ):
+		with open( path, 'rb' ) as f: signature = unicode( f.read(), errors = 'replace' ).strip().split( '\t' )
+		return signature
+
+	# based on http://windyroad.org/dl/Open%20Source/JUnit.xsd
+	def cases( self, path, match ):
+		get_cdata = lambda elements: elements[ 0 ].childNodes[ 0 ].nodeValue
+		xmldoc = minidom.parse( path )
+		cases = []
+		for tc in xmldoc.getElementsByTagName( 'testcase' ):
+			case = {}
+			case[ 'name' ] = tc.getAttribute( 'name' )
+			case[ 'type' ] = 'ok'
+			stdout = tc.getElementsByTagName( 'system-out' )
+			case[ 'stdout' ] = get_cdata( stdout ) if stdout else ''
+			stderr = tc.getElementsByTagName( 'system-err' )
+			case[ 'stderr' ] = get_cdata( stderr ) if stderr else ''
+			error = tc.getElementsByTagName( 'error' )
+			if error:
+				case[ 'error' ] = get_cdata( error )
+				case[ 'type' ] = error[ 0 ].getAttribute( 'type' )
+				case[ 'failure' ] = ''
+			else:
+				failure = tc.getElementsByTagName( 'failure' )
+				if failure:
+					case[ 'failure' ] = get_cdata( failure )
+					case[ 'type' ] = failure[ 0 ].getAttribute( 'type' )
+					case[ 'error' ] = ''
+			cases.append( case )
+		return cases
+
+	def sort( self ):
 		for res in self.results:
 			res[ 'exercises' ].sort( key = itemgetter( 'name' ) )
 			for exercise in res[ 'exercises' ]:
@@ -135,17 +174,14 @@ class FileSystemConverter( object ):
 		self.results.sort( key = itemgetter( 'uid' ) )
 		return self
 
-	def tojson( self ):
-		return dumps( self.results )
+class OneFilePerExercise( FileSystemConverter ):
 
-class SeeYouConverter( FileSystemConverter ):
-	pass
+	def __init__( self, basedir, extension = '.*' ):
+		super( OneFilePerExercise, self ).__init__( basedir,
+			source = r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.{0})$'.format( extension )
+		)
+
 
 if __name__ == '__main__':
-	#FileSystemConverter( argv[ 1 ], source = r'(?P<uid>.*)/(?P<source>(?P<exercise>.*)\.java)' )
-	converter = FileSystemConverter( argv[ 1 ],
-		source = r'(?P<uid>.*)/latest/(?P<exercise>.*)/(?P<source>.*\.[ch])$',
-		signature = r'(?P<uid>.*)/SIGNATURE\.tsv',
-		cases = r'(?P<uid>.*)/latest/TEST-(?P=uid)\.(?P<exercise>.*)\.xml$',
-	)
-	print converter.scan().sort().tojson()
+	print SeeYouConverter( argv[ 1 ] ).scan().sort().tojson()
+	#print OneFilePerExercise( argv[ 1 ], 'java' ).scan().sort().tojson()
