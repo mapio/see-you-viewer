@@ -118,9 +118,9 @@
 				}
 				var cur = exercises[ current.exercise ];
 				$identification.text( [
-					results[ current.uid ].uid,
-					results[ current.uid ].info,
-					results[ current.uid ].ip,
+					results[ current.uid ].signature.uid,
+					results[ current.uid ].signature.info,
+					results[ current.uid ].signature.ip,
 					cur.name ].join()
 				);
 				$exercise.text( cur.name );
@@ -157,9 +157,9 @@
 				}
 				var cur = results[ current.uid ];
 				if ( cur == null ) return;
-				$uid.text( cur.uid );
-				$info.val( cur.info );
-				$ip.text( cur.ip );
+				$uid.text( cur.signature.uid );
+				$info.val( cur.signature.info );
+				$ip.text( cur.signature.ip );
 				var trs = $( 'tbody tr' );
 				trs.removeClass( 'info' );
 				$( trs[ current.uid ] ).addClass( 'info' );
@@ -184,7 +184,7 @@
 				evaluations = [];
 				exercise_names = {};
 				$.each( results, function( ri, res ) {
-					infos.push( res.info );
+					infos.push( res.signature.info );
 					evaluations[ ri ] = [];
 					$.each( res.exercises, function( ei, ex ) {
 						exercise_names[ ex.name ] = true;
@@ -215,8 +215,8 @@
 				var tbody = $( '<tbody/>' );
 				$.each( results, function( uid, res ) {
 					var tr = $( '<tr/> ');
-					tr.append( $( '<td/>').text( res.uid ) );
-					tr.append( $( '<td/>').text( res.info ) );
+					tr.append( $( '<td/>').text( res.signature.uid ) );
+					tr.append( $( '<td/>').text( res.signature.info ) );
 					var s = {};
 					$.each( res.exercises, function( i, ex ) {
 						var n = {
