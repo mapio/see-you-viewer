@@ -117,14 +117,19 @@
 					else return;
 				}
 				var cur = exercises[ current.exercise ];
-				$identification.text( results[ current.uid ].signature.toString() + ", " + cur.name );
+				$identification.text( [
+					results[ current.uid ].uid,
+					results[ current.uid ].info,
+					results[ current.uid ].ip,
+					cur.name ].join()
+				);
 				$exercise.text( cur.name );
 				var res = [];
-				$.each( cur.sources, function( p ) {
+				$.each( cur.sources, function( idx, source ) {
 					res.push( $( '<div/>' ).append(
-						'<span class="label">' + p + '</span>'
+						'<span class="label">' + source[ 'name' ] + '</span>'
 					).append(
-						$( '<pre/>' ).html( hljs.highlight( 'cpp', this ).value )
+						$( '<pre/>' ).html( hljs.highlight( 'cpp', source[ 'content' ] ).value )
 					));
 				});
 				if ( res.length > 0 ) {
@@ -170,41 +175,10 @@
 			}
 
 			function from_json( data ) {
-				function _cmp( field ) {
-					function _c( a, b ) {
-						return a[ field ] < b[ field ] ? -1 : ( a[ field ] > b[ field ] ? 1 : 0 );
-					}
-					return _c;
-				}
-				function _edit( hash, func ) {
-					var array = [];
-					$.each( hash, function( key, val ) {
-						func( key, val );
-						array.push( val );
-					});
-					return array;
-				}
 				var sha = new jsSHA( data, 'TEXT' );
 				results_signaure =  sha.getHash( 'SHA-1', 'HEX' );
 				$( '#result_sha' ).text( results_signaure );
-				data = JSON.parse( data );
-				results = _edit( data, function( idx, res ) {
-					res.uid = res.signature[ 0 ];
-					res.info = res.signature[ 1 ];
-					res.ip = res.signature[ 2 ];
-					var exercises = _edit( res.exercises, function( name, exercise ) {
-						exercise.name = name;
-						exercise_names[ name ] = true;
-						var cases = exercise.cases;
-						if ( cases.length == 0 ) return;
-						var cm = cases.shift()
-						cases.sort( _cmp( 'name' ) );
-						cases.unshift( cm );
-					});
-					exercises.sort( _cmp( 'name' ) );
-					res.exercises = exercises;
-				});
-				results.sort( _cmp( 'uid' ) );
+				results = JSON.parse( data );
 
 				infos.splice( 0, infos.length ); /* mutate the object since it is bound to typeahead */
 				evaluations = [];

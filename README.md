@@ -40,12 +40,12 @@ the following "BNF" grammar:
 	}
 
 	CASE := { # the format of this depends on "See you" xUnit approach (see testrunner.py)
-				'name': <CASE_NAME>,
-				'stdout': <STDOUT_CONTENT>,
-				'stderr': <STDERR_CONTENT>,
-				'failure': <FAILURE_MESSAGE>,
-				'error': <ERROR_MESSAGE>,
-				'type': <TYPE>
+		'name': <CASE_NAME>,
+		'stdout': <STDOUT_CONTENT>,
+		'stderr': <STDERR_CONTENT>,
+		'failure': <FAILURE_MESSAGE>,
+		'error': <ERROR_MESSAGE>,
+		'type': <TYPE>
 	}
 
 	TYPE := 'compile' | 'execution' | 'diff' | 'ok'

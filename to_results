@@ -145,20 +145,20 @@ class SeeYouConverter( FileSystemConverter ):
 			case[ 'name' ] = tc.getAttribute( 'name' )
 			case[ 'type' ] = 'ok'
 			stdout = tc.getElementsByTagName( 'system-out' )
-			case[ 'stdout' ] = get_cdata( stdout ) if stdout else ''
+			case[ 'stdout' ] = get_cdata( stdout ) if stdout else None
 			stderr = tc.getElementsByTagName( 'system-err' )
-			case[ 'stderr' ] = get_cdata( stderr ) if stderr else ''
+			case[ 'stderr' ] = get_cdata( stderr ) if stderr else None
 			error = tc.getElementsByTagName( 'error' )
 			if error:
 				case[ 'error' ] = get_cdata( error )
 				case[ 'type' ] = error[ 0 ].getAttribute( 'type' )
-				case[ 'failure' ] = ''
+				case[ 'failure' ] = None
 			else:
 				failure = tc.getElementsByTagName( 'failure' )
 				if failure:
 					case[ 'failure' ] = get_cdata( failure )
 					case[ 'type' ] = failure[ 0 ].getAttribute( 'type' )
-					case[ 'error' ] = ''
+					case[ 'error' ] = None
 			cases.append( case )
 		return cases
 
