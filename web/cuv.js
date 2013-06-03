@@ -1,15 +1,14 @@
 var results = [],
 	results_signaure = null,
 	infos = [],
-	evaluations = []
+	evaluations = [],
 	exercise_names = []; /* filled by parse_results */
 
 var $info, $uid, $exercise, $case, $ip, $identification,
 	$evaluation, $score, $note, $sources, $cases, $summary,
 	$sources_tab, $cases_tab, $summary_tab;
 
-var current = { uid: 0, exercise: 0 };
-
+var current = { 'uid': 0, 'exercise': 0 };
 
 Mousetrap.bind( 'q', function() { update_uid( -1 ); } );
 Mousetrap.bind( 'w', function() { update_summary(); } );
@@ -27,6 +26,14 @@ Mousetrap.bind( 'h', function() { $( '#shortcuts' ).modal( 'toggle' ); } );
 Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badges' ).toggle(); } );
 Mousetrap.bind( 't', function() { $( '#summary_tab input' ).toggle(); } );
 
+function input_ue( e ) {
+	var $e = $( e );
+	return {
+		'uid': $e.closest( 'tr' ).data( 'uid' ),
+		'exercise': $e.closest( 'td' ).data( 'exercise' )
+	};
+}
+
 function dowlonad_evaluations() {
 	if ( results_signaure === null ) return;
 	evaluations_blob = new Blob( [ JSON.stringify( evaluations ) ], { type: 'application/json' } );
@@ -34,13 +41,14 @@ function dowlonad_evaluations() {
 }
 
 function store_evaluation( elem ) {
-	var rc = $( elem ).data();
-	if ( $( elem ).is( 'input' ) ) {
+	var $elem = $( elem );
+	var ue = $elem.parent().is( 'div' ) ? $evaluation.data() : input_ue( elem );
+	if ( $elem.is( 'input' ) ) {
 		var val = elem.valueAsNumber;
-		if ( isNaN( val ) ) $( elem ).val( evaluations[ rc.r ][ rc.c ].score );
-		else evaluations[ rc.r ][ rc.c ].score = val;
+		if ( isNaN( val ) ) $elem.val( evaluations[ ue.uid ][ ue.exercise ].score );
+		else evaluations[ ue.uid ][ ue.exercise ].score = val;
 	} else
-		evaluations[ rc.r ][ rc.c ].note = $( elem ).val();
+		evaluations[ ue.uid ][ ue.exercise ].note = $elem.val();
 	localStorage[ results_signaure ] = JSON.stringify( evaluations );
 }
 
@@ -107,9 +115,8 @@ function update_exercise( delta ) {
 	} );
 	if ( res.length > 0 ) {
 		$score.val( evaluations[ current.uid ][ current.exercise ].score );
-		$score.data( { 'r': current.uid, 'c': current.exercise  } );
 		$note.val( evaluations[ current.uid ][ current.exercise ].note );
-		$note.data( { 'r': current.uid, 'c': current.exercise  } );
+		$evaluation.data( { 'uid': current.uid, 'exercise': current.exercise } );
 		$evaluation.show();
 		$sources.html( '' );
 		$.each( res, function( i, s ) { $sources.append( s ); } );
@@ -133,16 +140,15 @@ function update_uid( delta ) {
 	$uid.text( cur.signature.uid );
 	$info.val( cur.signature.info );
 	$ip.text( cur.signature.ip );
-	var trs = $( 'tbody tr' );
-	trs.removeClass( 'info' );
-	$( trs[ current.uid ] ).addClass( 'info' );
+	$( 'tbody tr' ).removeClass( 'info' );
+	$( 'tr[data-uid="' + current.uid + '"]' ).addClass( 'info' );
 	update_exercise();
 }
 
 function update_summary() {
 	$( '#summary_tab input' ).each( function( i, e ) {
-		var rc = $( e ).data();
-		$( e ).val( evaluations[ rc.r ][ rc.c ].score );
+		var ue = input_ue( e );
+		$( e ).val( evaluations[ ue.uid ][ ue.exercise ].score );
 	} );
 	$summary_tab.tab( 'show' );
 }
@@ -187,7 +193,7 @@ function setup_summary() {
 
 	var tbody = $( '<tbody/>' );
 	$.each( results, function( uid, res ) {
-		var tr = $( '<tr/> ');
+		var tr = $( '<tr data-uid="'+ uid + '"/>');
 		tr.append( $( '<td/>').text( res.signature.uid ) );
 		tr.append( $( '<td/>').text( res.signature.info ) );
 		var s = {};
@@ -220,19 +226,17 @@ function setup_summary() {
 					progress.append( $( '<div class="bar bar-' + l1 +'" style="width: ' + ( sn[ k ] * 100 / sn.tot ) +'%;"/>' ) );
 				return badge;
 			}
-			var td = $( '<td/>' );
+			var td = $( '<td data-exercise="' + ex + '"/>' );
 			if ( sn[ 'sources' ] > 0 ) {
 				var input = $( '<input type="number" step="any" class="span3" value="' + evaluations[ uid ][ ex ].score + '" style="margin: 0 4pt 0 0;" onchange="store_evaluation( this )"/>' );
-				input.data( 'r', uid );
-				input.data( 'c', ex );
 				badges.append( input );
 			}
 			var source_badge = _badge( 'sources' );
-			if ( source_badge !== null ) source_badge.click( ( function( r, c ) { return function() {
-				current.uid = uid, current.exercise = ex;
+			if ( source_badge !== null ) source_badge.click( function( e ) {
+				current = input_ue( e.target );
 				update_uid();
 				$sources_tab.tab( 'show' );
-			}; } )( uid, ex ) );
+			} );
 			_badge( 'ok', 'success', 'success' );
 			_badge( 'diff', 'important', 'danger' );
 			_badge( 'failure', 'warning' );
@@ -255,8 +259,7 @@ function setup_summary() {
 	$( 'div.progress' ).toggle();
 }
 
-
-$(function() {
+$( function() {
 
 	$info = $( '#info' );
 	$uid = $( '#uid' );
@@ -280,7 +283,7 @@ $(function() {
 	$sources_tab.click( update_exercise );
 	$summary_tab.click( update_summary );
 
-	$info.typeahead({ source: infos });
+	$info.typeahead( { source: infos } );
 	$info.on( "focus", function( e ) { $info.val( '' ); } );
 	$info.on( "blur", function( e ) { $info.val( results[ current.uid ].info ); } );
 	$info.keypress( function( e ) {
@@ -296,7 +299,7 @@ $(function() {
 		}
 	} );
 
-	$.tablesorter.addParser({
+	$.tablesorter.addParser( {
 		id: 'result',
 		is: function( s ) { return false; },
 		format: function( s, table, cell, cellIndex ) {
