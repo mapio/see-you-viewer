@@ -2,7 +2,7 @@ var results = [],
 	results_signaure = null,
 	infos = [],
 	evaluations = [],
-	exercise_names = []; /* filled by parse_results */
+	exercise_names = []; /* filled by from_json */
 
 var $info, $uid, $exercise, $case, $ip, $identification,
 	$evaluation, $score, $note, $sources, $cases, $summary,
@@ -285,7 +285,7 @@ $( function() {
 
 	$info.typeahead( { source: infos } );
 	$info.on( "focus", function( e ) { $info.val( '' ); } );
-	$info.on( "blur", function( e ) { $info.val( results[ current.uid ].info ); } );
+	$info.on( "blur", function( e ) { if ( results[ current.uid ] != null ) $info.val( results[ current.uid ].signature.info ); } );
 	$info.keypress( function( e ) {
 		if ( e.which == 13 ) {
 			var t = infos.indexOf( $info.val() );
