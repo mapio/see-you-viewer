@@ -1,0 +1,5 @@
+#!/bin/bash
+
+export BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
+cd $BASEDIR/web && python -m SimpleHTTPServer
