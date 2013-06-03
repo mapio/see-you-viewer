@@ -35,7 +35,7 @@ function input_ue( e ) {
 }
 
 function dowlonad_evaluations() {
-	if ( results_signaure === null ) return;
+	if ( results_signaure == null ) return;
 	evaluations_blob = new Blob( [ JSON.stringify( evaluations ) ], { type: 'application/json' } );
 	saveAs( evaluations_blob, results_signaure + '.json' );
 }
@@ -54,9 +54,9 @@ function store_evaluation( elem ) {
 
 function update_case( delta ) {
 	var cur = results[ current.uid ];
-	if ( cur === null ) return;
+	if ( cur == null ) return;
 	var cases = cur.exercises[ current.exercise ].cases;
-	if ( cases.length === 0 ) return;
+	if ( cases.length == 0 ) return;
 	if ( typeof delta !== 'undefined' ) {
 		var t = current.case + delta;
 		if ( 0 <= t && t < cases.length ) current.case = t;
@@ -66,7 +66,7 @@ function update_case( delta ) {
 	$case.text( cur.name );
 	var res = [];
 	$.each( [ 'failure', 'error', 'stdout', 'stderr' ], function( i, e ) {
-		if ( cur[ e ] !== null ) res.push(
+		if ( cur[ e ] != null ) res.push(
 			$( '<div/>' ).html(
 				'<span class="label">' + e + '</span>'
 			).append(
@@ -90,7 +90,7 @@ function update_case( delta ) {
 
 function update_exercise( delta ) {
 	var cur = results[ current.uid ];
-	if ( cur === null ) return;
+	if ( cur == null ) return;
 	var exercises = cur.exercises;
 	if ( typeof delta !== 'undefined' ) {
 		var t = current.exercise + delta;
@@ -136,7 +136,7 @@ function update_uid( delta ) {
 		else return;
 	}
 	var cur = results[ current.uid ];
-	if ( cur === null ) return;
+	if ( cur == null ) return;
 	$uid.text( cur.signature.uid );
 	$info.val( cur.signature.info );
 	$ip.text( cur.signature.ip );
@@ -219,7 +219,7 @@ function setup_summary() {
 			var progress = $( '<div class="progress"/>' );
 			function _badge( k, l0, l1 ) {
 				var badge = null;
-				if ( sn === null || sn[ k ] === 0 ) return null;
+				if ( sn == null || sn[ k ] == 0 ) return null;
 				badge = $( '<span class="badge badge' + ( l0 !== 'undefined' ? '-' + l0 : '' ) + '"/>' ).text( sn[ k ] );
 				badges.append( badge );
 				if ( typeof l1 !== 'undefined' )
