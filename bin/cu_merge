@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+
+from json import loads
+from operator import itemgetter
+from sys import argv
+
+with open( argv[ 1 ], 'r' ) as f: results = loads( f.read() )
+with open( argv[ 2 ], 'r' ) as f: evals = loads( f.read() )
+
+headers =  results[ 0 ][ 'signature' ].keys() + map( itemgetter( 'name' ), results[ 0 ][ 'exercises' ] )
+print u'\t'.join( headers )
+
+for r, e in zip( results, evals ):
+	vals = r[ 'signature' ].values() + map( str, map( itemgetter( 'score' ), e ) )
+	print u'\t'.join( vals )
