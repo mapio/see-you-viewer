@@ -24,7 +24,8 @@ Mousetrap.bind( 'c', function() { update_case( +1 ); } );
 
 Mousetrap.bind( 'h', function() { $( '#shortcuts' ).modal( 'toggle' ); } );
 Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badges' ).toggle(); } );
-Mousetrap.bind( 't', function() { $( '#summary_tab input' ).toggle(); } );
+
+Mousetrap.bind( 't', function() { $( 'span.badge' ).toggle(); $( 'input.evals' ).toggle(); } );
 
 function input_ue( e ) {
 	var $e = $( e );
@@ -228,7 +229,7 @@ function setup_summary() {
 			}
 			var td = $( '<td data-exercise="' + ex + '"/>' );
 			if ( sn[ 'sources' ] > 0 ) {
-				var input = $( '<input type="number" step="any" class="span3" value="' + evaluations[ uid ][ ex ].score + '" style="margin: 0 4pt 0 0;" onchange="store_evaluation( this )"/>' );
+				var input = $( '<input type="number" step="any" class="span6 evals" value="' + evaluations[ uid ][ ex ].score + '" style="margin: 0 4pt 0 0;" onchange="store_evaluation( this )"/>' );
 				badges.append( input );
 			}
 			var source_badge = _badge( 'sources' );
@@ -257,6 +258,7 @@ function setup_summary() {
 	} );
 	$summary.html( table );
 	$( 'div.progress' ).toggle();
+	$( 'input.evals' ).toggle();
 }
 
 $( function() {
