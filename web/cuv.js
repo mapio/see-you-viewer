@@ -2,7 +2,8 @@ var results = [],
 	results_signaure = null,
 	infos = [],
 	evaluations = [],
-	exercise_names = []; /* filled by from_json */
+	exercise_names = [], /* filled by from_json */
+	interactive = false;  /* filled at startup */
 
 var $info, $uid, $exercise, $case, $ip, $identification,
 	$evaluation, $score, $note, $sources, $cases, $summary,
@@ -25,7 +26,7 @@ Mousetrap.bind( 'c', function() { update_case( +1 ); } );
 Mousetrap.bind( 'h', function() { $( '#shortcuts' ).modal( 'toggle' ); } );
 Mousetrap.bind( 'r', function() { $( 'div.progress' ).toggle(); $( 'span.badges' ).toggle(); } );
 
-Mousetrap.bind( 't', function() { $( 'span.badge' ).toggle(); $( 'input.evals' ).toggle(); } );
+if ( interactive ) Mousetrap.bind( 't', function() { $( 'span.badge' ).toggle(); $( 'input.evals' ).toggle(); } );
 
 function input_ue( e ) {
 	var $e = $( e );
@@ -118,7 +119,7 @@ function update_exercise( delta ) {
 		$score.val( evaluations[ current.uid ][ current.exercise ].score );
 		$note.val( evaluations[ current.uid ][ current.exercise ].note );
 		$evaluation.data( { 'uid': current.uid, 'exercise': current.exercise } );
-		$evaluation.show();
+		if ( interactive ) $evaluation.show(); else $evaluation.hide();
 		$sources.html( '' );
 		$.each( res, function( i, s ) { $sources.append( s ); } );
 	} else {
@@ -155,10 +156,15 @@ function update_summary() {
 }
 
 function from_json( data ) {
-	var sha = new jsSHA( data, 'TEXT' );
-	results_signaure =  sha.getHash( 'SHA-1', 'HEX' );
-	$( '#result_sha' ).text( results_signaure );
-	results = JSON.parse( data );
+
+	if ( typeof data === 'object' ) {
+		results = data;
+	} else {
+		var sha = new jsSHA( data, 'TEXT' );
+		results_signaure =  sha.getHash( 'SHA-1', 'HEX' );
+		$( '#result_sha' ).text( results_signaure );
+		results = JSON.parse( data );
+	}
 
 	infos.splice( 0, infos.length ); /* mutate the object since it is bound to typeahead */
 	evaluations = [];
@@ -228,7 +234,7 @@ function setup_summary() {
 				return badge;
 			}
 			var td = $( '<td data-exercise="' + ex + '"/>' );
-			if ( sn[ 'sources' ] > 0 ) {
+			if ( interactive && sn[ 'sources' ] > 0 ) {
 				var input = $( '<input type="number" step="any" class="span6 evals" value="' + evaluations[ uid ][ ex ].score + '" style="margin: 0 4pt 0 0;" onchange="store_evaluation( this )"/>' );
 				badges.append( input );
 			}
@@ -320,5 +326,15 @@ $( function() {
 		$( 'div.fileupload' ).fileupload( 'clear' );
 	} );
 
-} );
+	$.getJSON( '../results.json', function( data ) {
+		interactive = false;
+		from_json( data );
+		$( '.interactive' ).hide();
+		console.log( 'loaded results.json' );
+	} ).fail( function() {
+		interactive = true;
+		$( '.interactive' ).show();
+		console.log( 'interactive mode' );
+	} );
 
+} );

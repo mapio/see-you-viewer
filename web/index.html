@@ -37,7 +37,7 @@
 			<ul>
 			<li><kbd>h</kbd>: toggle this help,</li>
 			<li><kbd>r</kbd>: toggle score number/bars in summary,</li>
-			<li><kbd>t</kbd>: toggle score/inputs in summary,</li>
+			<li class="interactive"><kbd>t</kbd>: toggle score/inputs in summary,</li>
 			<li><kbd>q</kbd>,
 				<kbd>w</kbd>,
 				<kbd>e</kbd>: previous <em>uid</em>, summary, next <em>uid</em>,</li>
@@ -79,11 +79,13 @@
 
 		<hr/>
 
+		<div class="interactive">
 		<div class="fileupload fileupload-new" data-provides="fileupload">
 			<span class="btn btn-file"><span class="fileupload-new">Load results</span><input type="file" id="result_file" /></span>
 		</div>
 		<span class="uneditable-input" id="result_sha"></span>
 		<button class="btn" type="button" onclick="dowlonad_evaluations()">Download evaluations</button>
+		</div>
 
 	</div><!-- sidebar -->
 
