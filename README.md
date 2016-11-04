@@ -23,10 +23,13 @@ the following "BNF" grammar:
 
 	RESULTS :=  [ ( RESULT )+ ]
 
-	RESULT := { # the first three fields are the "signature" collected by "Tristo mietitore"
-		'uid': <UID>,
-		'info': <INFO>,
-		'ip': <EXTRA>,
+	RESULT := {
+		'signature': {
+			# these fields are the "signature" collected by "Tristo mietitore"
+			'uid': <UID>,
+			'info': <INFO>,
+			'ip': <EXTRA>
+		},
 		'exercises': [ ( <EXERCISE> )+ ]
 	}
 
